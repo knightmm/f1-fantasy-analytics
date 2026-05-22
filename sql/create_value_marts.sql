@@ -34,16 +34,26 @@ SELECT
 FROM constructors_race_snapshots;
 
 
--- Season Summary
+-- Driver Season Summary
 DROP TABLE IF EXISTS mart_driver_season_value_summary;
 
 CREATE TABLE mart_driver_season_value_summary AS
 SELECT
     asset_id,
     display_name,
-    SUM(value_change) AS total_value_change,
-    MIN(old_asset_value) AS starting_value,
-    MAX(value) AS current_value,
+    ROUND(SUM(value_change), 2) AS total_value_change,
     MAX(overall_points) AS current_overall_points
 FROM mart_driver_value_changes
+GROUP BY asset_id, display_name;
+
+-- Constructor Season Summary
+DROP TABLE IF EXISTS mart_constructor_season_value_summary;
+
+CREATE TABLE mart_constructor_season_value_summary AS
+SELECT
+    asset_id,
+    display_name,
+    ROUND(SUM(value_change), 2) AS total_value_change,
+    MAX(overall_points) AS current_overall_points
+FROM mart_constructor_value_changes
 GROUP BY asset_id, display_name;
