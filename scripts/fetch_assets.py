@@ -2,8 +2,14 @@ import requests
 import os
 import json
 import pandas as pd
-from datetime import date, datetime, timezone
-
+from datetime import date
+from src.transform_assets import (
+    make_assets_dataframe, 
+    rename_asset_columns, 
+    cast_asset_dtypes, 
+    make_constructors_dataframe, 
+    make_drivers_dataframe
+    )
 
 # Helper Functions
 def get_completed_race_numbers():
@@ -39,73 +45,6 @@ def save_raw_json(data, race_number):
         json.dump(data, f, indent=2)
         
 
-# Transformation/Save to CSV
-def make_assets_dataframe(data, race_number):
-    # Normalize data in the value subdictionary, append API feed timestamp, retrieved time, race number and season columns
-    df = pd.json_normalize(data["Data"]["Value"])
-    df["feed_time_utc"] = data["Data"]["FeedTime"]["UTCTime"]
-    df["retrieved_at_utc"] = datetime.now(timezone.utc)
-    df["race_number"] = race_number
-    df["season"] = 2026
-    
-    # Put season, race number and feed time at the front
-    cols_to_front = ["season", "race_number", "feed_time_utc", "retrieved_at_utc"]
-    remaining_cols = [col for col in df.columns if col not in cols_to_front]
-    df = df[cols_to_front + remaining_cols]
-    
-    # Correct data types
-    df["feed_time_utc"] = pd.to_datetime(df["feed_time_utc"], format="%m/%d/%Y %I:%M:%S %p", utc=True)
-    df["retrieved_at_utc"] = pd.to_datetime(df["retrieved_at_utc"], utc=True)
-    int_cols = [
-        "season",
-        "race_number",
-        "GamedayPoints",
-        "BestRaceFinished",
-        "HigestGridStart",
-        "BestRaceFinishCount",
-        "HighestGridStartCount",
-        "HighestChampFinishCount",
-        "FastestPitstopAwardCount",
-    ]
-    float_cols = [
-        "Value",
-        "OverallPpints",
-        "QualifyingPoints",
-        "RacePoints",
-        "SprintPoints",
-        "NoNegativePoints",
-        "ProjectedGamedayPoints",
-        "ProjectedNoNegativePoints",
-        "ProjectedOverallPpints",
-        "SelectedPercentage",
-        "CaptainSelectedPercentage",
-        "OldPlayerValue",
-        "FastestPitstopAward",
-        "old_Value",
-        "new_value",
-        "HigestChampFinish",
-    ]
-    
-    for col in int_cols:
-        df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
-    for col in float_cols:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
-        
-    return df
-
-def make_constructors_dataframe(df):
-    constructor_filter = df["PositionName"] == "CONSTRUCTOR"
-    constructors_df = df[constructor_filter].copy()
-    
-    constructor_drop_cols = ['TeamName', 'Status', 'DriverReference', 'CountryName']
-    constructors_df = constructors_df.drop(columns=constructor_drop_cols)
-    return constructors_df
-
-def make_drivers_dataframe(df):
-    drivers_filter = df["PositionName"] == "DRIVER"
-    drivers_df = df[drivers_filter].copy()
-    return drivers_df
-
 def save_entity_csv(data, entity_name, race_number):
     csv_save_path = os.path.join("data", "processed", f"{entity_name}_race_{race_number}.csv")
     data.to_csv(csv_save_path, index=False)
@@ -128,6 +67,8 @@ def main():
         print(f"Saved raw JSON for race {race_number}")
         
         df = make_assets_dataframe(data, race_number)
+        df = rename_asset_columns(df)
+        df = cast_asset_dtypes(df)
         
         constructors_df = make_constructors_dataframe(df)
         save_entity_csv(constructors_df, "constructors", race_number)
