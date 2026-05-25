@@ -1,10 +1,9 @@
 import requests
-import os
-import json
 from src.utils.races import get_completed_race_numbers
 from src.utils.paths import (
-    get_raw_file_path,
-    raw_file_exists
+    raw_file_exists,
+    save_raw_json,
+    save_processed_csv
 )
 from src.transform_assets import (
     make_assets_dataframe, 
@@ -23,18 +22,6 @@ def fetch_assets(race_number):
     data = r.json()
     return data
 
-# Save Raw JSON
-def save_raw_json(data, race_number):
-    file_path = get_raw_file_path(race_number)
-    
-    with open(file_path, "w") as f:
-        json.dump(data, f, indent=2)
-        
-
-def save_entity_csv(data, entity_name, race_number):
-    csv_save_path = os.path.join("data", "processed", f"{entity_name}_race_{race_number}.csv")
-    data.to_csv(csv_save_path, index=False)
-
 
 # Orchestration Logic
 def main():
@@ -49,7 +36,7 @@ def main():
             continue
         
         data = fetch_assets(race_number)
-        save_raw_json(data, race_number)
+        save_raw_json(data, "assets", race_number)
         print(f"Saved raw Assets JSON for race {race_number}")
         
         df = make_assets_dataframe(data, race_number)
@@ -57,11 +44,11 @@ def main():
         df = cast_asset_dtypes(df)
         
         constructors_df = make_constructors_dataframe(df)
-        save_entity_csv(constructors_df, "constructors", race_number)
+        save_processed_csv(constructors_df, "constructors", race_number)
         print(f"Saved Constructors CSV for race {race_number}")
         
         drivers_df = make_drivers_dataframe(df)
-        save_entity_csv(drivers_df, "drivers", race_number)
+        save_processed_csv(drivers_df, "drivers", race_number)
         print(f"Saved Drivers CSV for race {race_number}")
 
 if __name__ == "__main__":
