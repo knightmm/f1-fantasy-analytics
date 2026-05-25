@@ -1,8 +1,11 @@
 import requests
 import os
 import json
-import pandas as pd
-from datetime import date
+from src.utils.races import get_completed_race_numbers
+from src.utils.paths import (
+    get_raw_file_path,
+    raw_file_exists
+)
 from src.transform_assets import (
     make_assets_dataframe, 
     rename_asset_columns, 
@@ -10,23 +13,6 @@ from src.transform_assets import (
     make_constructors_dataframe, 
     make_drivers_dataframe
     )
-
-# Helper Functions
-def get_completed_race_numbers():
-    races_csv = os.path.join("data", "reference", "races_2026.csv")
-    races = pd.read_csv(races_csv)
-    races["race_date"] = pd.to_datetime(races["race_date"]).dt.date
-    
-    today = date.today()
-    completed_races = races[races["race_date"] < today]
-    return completed_races["race_number"].sort_values().tolist()
-
-def get_raw_file_path(race_number):
-    return os.path.join("data", "raw", f"assets_race_{race_number}.json")
-    
-def raw_file_exists(race_number):
-    file_path = get_raw_file_path(race_number)
-    return os.path.exists(file_path)
 
 # API
 def fetch_assets(race_number):
@@ -58,13 +44,13 @@ def main():
         
         # Fix 1: Check feed time and if server time is more recent then update the file
         # Fix 2: Only reprocess if feed changed
-        if raw_file_exists(race_number):
-            print(f"Race {race_number} JSON already exists. Skipping.")
+        if raw_file_exists("assets", race_number):
+            print(f"Assets Race {race_number} JSON already exists. Skipping.")
             continue
         
         data = fetch_assets(race_number)
         save_raw_json(data, race_number)
-        print(f"Saved raw JSON for race {race_number}")
+        print(f"Saved raw Assets JSON for race {race_number}")
         
         df = make_assets_dataframe(data, race_number)
         df = rename_asset_columns(df)
