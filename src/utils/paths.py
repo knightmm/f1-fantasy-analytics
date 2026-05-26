@@ -11,7 +11,7 @@ def raw_file_exists(dataset_name, race_number):
 
 def load_raw_json(dataset_name, race_number):
 
-    path = os.path.join("data", "raw", f"{dataset_name}_{race_number}.json")
+    path = os.path.join("data", "raw", f"{dataset_name}_race_{race_number}.json")
 
     with open(path, "r") as f:
         data = json.load(f)

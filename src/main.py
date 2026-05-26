@@ -71,9 +71,35 @@ def get_latest_assets(asset_type: str | None = None):
     params = []
     
     if asset_type:
-        query += "WHERE asset_type = ?"
+        query += " WHERE asset_type = ?"
         params.append(asset_type)
     
-    query += "ORDER BY asset_type, value DESC"
+    query += " ORDER BY asset_type, value DESC"
     
+    return run_query(query, params)
+
+@app.get("/assets/latest-prices")
+def get_latest_asset_prices(display_name: str | None = None):
+
+    query = """
+        SELECT
+            price_feed_race_number,
+            race_causing_change,
+            asset_id,
+            asset_type,
+            display_name,
+            current_value,
+            previous_value,
+            latest_value_change
+        FROM mart_asset_latest_prices
+    """
+
+    params = []
+
+    if display_name:
+        query += " WHERE LOWER(display_name) LIKE LOWER(?)"
+        params.append(f"%{display_name}%")
+
+    query += " ORDER BY current_value DESC"
+
     return run_query(query, params)

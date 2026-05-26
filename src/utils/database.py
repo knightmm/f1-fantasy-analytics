@@ -16,6 +16,10 @@ def load_csvs_to_table(
             matching_files.append(file)
 
     matching_files.sort()
+    
+    if not matching_files:
+        print(f"No files found for {file_prefix}")
+        return
 
     dfs = []
 

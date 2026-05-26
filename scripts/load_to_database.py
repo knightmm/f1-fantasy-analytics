@@ -26,6 +26,13 @@ load_csvs_to_table(
 
 load_csvs_to_table(
     PROCESSED_DIR,
+    "asset_prices_race_",
+    "asset_price_snapshots",
+    con,
+)
+
+load_csvs_to_table(
+    PROCESSED_DIR,
     "league_standings_race_",
     "league_standings",
     con,

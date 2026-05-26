@@ -95,3 +95,26 @@ WHERE race_number = (
 	SELECT MAX(race_number)
 	FROM mart_asset_snapshots
 );
+
+-- Current official asset prices from latest price feed
+DROP TABLE IF EXISTS mart_asset_latest_prices;
+
+CREATE TABLE mart_asset_latest_prices AS
+
+SELECT
+    season,
+    price_feed_race_number,
+    price_feed_race_number - 1 AS race_causing_change,
+    asset_id,
+    asset_type,
+    display_name,
+    current_value,
+    previous_value,
+    ROUND(current_value - previous_value, 1) AS latest_value_change,
+    retrieved_at_utc,
+    feed_time_utc
+FROM asset_price_snapshots
+WHERE price_feed_race_number = (
+    SELECT MAX(price_feed_race_number)
+    FROM asset_price_snapshots
+);

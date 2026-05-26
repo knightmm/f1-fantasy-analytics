@@ -15,7 +15,7 @@ def make_assets_dataframe(data, race_number):
     cols_to_front = ["season", "race_number", "feed_time_utc", "retrieved_at_utc"]
     remaining_cols = [col for col in df.columns if col not in cols_to_front]
     df = df[cols_to_front + remaining_cols]
-
+    
     return df
 
     # Rename columns
@@ -70,6 +70,8 @@ def rename_asset_columns(df):
               }
               )
     
+    df = df.drop(columns=["old_value", "new_value"], errors="ignore")
+
     return df
     
     
@@ -107,8 +109,6 @@ def cast_asset_dtypes(df):
         "race_points",
         "sprint_points",
         "no_negative_points",
-        "old_value",
-        "new_value",
         "projected_gameday_points",
         "projected_no_negative_points",
         "projected_overall_points",
@@ -153,3 +153,26 @@ def make_drivers_dataframe(df):
     drivers_df = df[driver_filter].copy()
 
     return drivers_df
+
+def make_asset_prices_dataframe(df):
+    return df[
+        [
+            "season",
+            "race_number",
+            "asset_id",
+            "asset_type",
+            "display_name",
+            "value",
+            "old_asset_value",
+            "retrieved_at_utc",
+            "feed_time_utc"
+        ]
+    ].rename(
+        columns={
+            "race_number": "price_feed_race_number",
+            "value": "current_value",
+            "old_asset_value": "previous_value",
+        }
+    )
+    
+    
