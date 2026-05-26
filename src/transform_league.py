@@ -89,6 +89,8 @@ def make_team_assets_dataframe(league_standings_df):
             "race_number",
             "user_guid",
             "team_no",
+            "team_name",
+            "user_name",
             "asset_id",
         ]
     ]
