@@ -57,3 +57,41 @@ SELECT
     MAX(overall_points) AS current_overall_points
 FROM mart_constructor_value_changes
 GROUP BY asset_id, display_name;
+
+-- Driver and Constructor Value Snapshots
+DROP TABLE IF EXISTS mart_asset_snapshots;
+
+CREATE TABLE mart_asset_snapshots AS
+
+SELECT
+    race_number,
+    asset_id,
+    'driver' AS asset_type,
+    display_name,
+    value,
+    overall_points
+FROM drivers_race_snapshots
+
+UNION ALL
+
+SELECT
+    race_number,
+    asset_id,
+    'constructor' AS asset_type,
+    display_name,
+    value,
+    overall_points
+FROM constructors_race_snapshots;
+
+-- Assets and Prices from Latest Race Only
+DROP TABLE IF EXISTS mart_assets_latest;
+
+CREATE TABLE mart_assets_latest AS
+
+SELECT 
+	*
+FROM mart_asset_snapshots
+WHERE race_number = (
+	SELECT MAX(race_number)
+	FROM mart_asset_snapshots
+);
