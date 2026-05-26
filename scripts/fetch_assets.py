@@ -2,6 +2,7 @@ import requests
 from src.utils.races import get_completed_race_numbers
 from src.utils.paths import (
     raw_file_exists,
+    load_raw_json,
     save_raw_json,
     save_processed_csv
 )
@@ -29,15 +30,14 @@ def main():
     completed_races = get_completed_race_numbers()
     for race_number in completed_races:
         
-        # Fix 1: Check feed time and if server time is more recent then update the file
-        # Fix 2: Only reprocess if feed changed
         if raw_file_exists("assets", race_number):
-            print(f"Assets Race {race_number} JSON already exists. Skipping.")
-            continue
+            data = load_raw_json("assets", race_number)
+            print(f"Loaded existing Assets Race {race_number} JSON")
         
-        data = fetch_assets(race_number)
-        save_raw_json(data, "assets", race_number)
-        print(f"Saved raw Assets JSON for race {race_number}")
+        else:
+            data = fetch_assets(race_number)
+            save_raw_json(data, "assets", race_number)
+            print(f"Saved raw Assets JSON for race {race_number}")
         
         df = make_assets_dataframe(data, race_number)
         df = rename_asset_columns(df)

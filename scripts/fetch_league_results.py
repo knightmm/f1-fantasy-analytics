@@ -11,6 +11,7 @@ from src.transform_league import (
 )
 from src.utils.paths import (
     raw_file_exists,
+    load_raw_json,
     save_raw_json,
     save_processed_csv
 )
@@ -34,15 +35,14 @@ def main():
     completed_races = get_completed_race_numbers()
     for race_number in completed_races:
         
-        # Fix 1: Check feed time and if server time is more recent then update the file
-        # Fix 2: Only reprocess if feed changed
         if raw_file_exists("league_standings", race_number):
-            print(f"League Standings for Race {race_number} JSON already exists. Skipping.")
-            continue
-        
-        raw_data = fetch_league_standings(race_number)
-        save_raw_json(raw_data, "league_standings", race_number)
-        print(f"Saved raw League Standings JSON for race {race_number}")
+            raw_data = load_raw_json("league_standings", race_number)
+            print(f"Loaded existing League Standings JSON for race {race_number}")
+
+        else:
+            raw_data = fetch_league_standings(race_number)
+            save_raw_json(raw_data, "league_standings", race_number)
+            print(f"Saved raw League Standings JSON for race {race_number}")
         
         leaderboard_df = make_league_standings_dataframe(raw_data)
                 
