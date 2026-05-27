@@ -4,33 +4,18 @@ import os
 
 from src.utils.database import load_csvs_to_table
 
+
 def main():
     
-    # Define Paths
     DATABASE_PATH = os.path.join("data", "f1_fantasy.db")
     PROCESSED_DIR = os.path.join("data", "processed")
 
-    # Context Manager to connect to SQLite
     with sqlite3.connect(DATABASE_PATH) as con:
 
         load_csvs_to_table(
             PROCESSED_DIR,
-            "constructors_race_",
-            "constructors_race_snapshots",
-            con,
-        )
-
-        load_csvs_to_table(
-            PROCESSED_DIR,
-            "drivers_race_",
-            "drivers_race_snapshots",
-            con,
-        )
-
-        load_csvs_to_table(
-            PROCESSED_DIR,
-            "asset_prices_race_",
-            "asset_price_snapshots",
+            "assets_race_",
+            "assets_race_snapshots",
             con,
         )
 
@@ -48,7 +33,6 @@ def main():
             con,
         )
 
-        # Write Race Data file to DB
         races_filepath = os.path.join("data", "reference", "races_2026.csv")
 
         races_df = pd.read_csv(races_filepath)
@@ -57,6 +41,7 @@ def main():
         races_df.to_sql("races", con, if_exists="replace", index=False)
 
         print("Database load complete.")
+
 
 if __name__ == "__main__":
     main()

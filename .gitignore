@@ -2,13 +2,14 @@
 .env*
 
 __pycache__/
+*.pyc
+
 .ipynb_checkpoints/
 .DS_Store
 .vscode/
 
 data/raw/
 data/processed/
-data/reference
 
 notebooks/private/
 
