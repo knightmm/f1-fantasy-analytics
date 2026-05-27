@@ -6,7 +6,6 @@ from src.utils.database import load_csvs_to_table
 
 
 def main():
-    
     DATABASE_PATH = os.path.join("data", "f1_fantasy.db")
     PROCESSED_DIR = os.path.join("data", "processed")
 
@@ -14,22 +13,22 @@ def main():
 
         load_csvs_to_table(
             PROCESSED_DIR,
-            "assets_race_",
-            "assets_race_snapshots",
+            "asset_snapshot_race_",
+            "asset_race_snapshots",
             con,
         )
 
         load_csvs_to_table(
             PROCESSED_DIR,
-            "league_standings_race_",
-            "league_standings",
+            "league_standings_snapshot_race_",
+            "league_standings_snapshots",
             con,
         )
 
         load_csvs_to_table(
             PROCESSED_DIR,
-            "league_team_assets_race_",
-            "league_team_assets",
+            "team_asset_snapshot_race_",
+            "team_asset_snapshots",
             con,
         )
 

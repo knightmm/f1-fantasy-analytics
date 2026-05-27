@@ -5,7 +5,7 @@ from urllib.parse import unquote
 def make_league_standings_dataframe(raw_data):
     return pd.json_normalize(raw_data["Value"]["leaderboard"])
 
-def clean_league_standings_dataframe(df, raw_data, race_number):
+def make_league_standings_snapshot_dataframe(df, raw_data, race_number):
     df = df.copy()
     
     df["team_name"] = df["team_name"].apply(unquote)
@@ -74,7 +74,7 @@ def cast_league_standings_dtypes(league_standings):
     return league_standings                                 
                                         
 
-def make_team_assets_dataframe(league_standings_df):
+def make_team_asset_snapshots_dataframe(league_standings_df):
     team_assets_df = league_standings_df.explode("user_team")
 
     team_assets_df = team_assets_df.rename(
@@ -99,5 +99,5 @@ def make_team_assets_dataframe(league_standings_df):
 
     return team_assets_df
 
-def make_clean_league_standings_dataframe(league_standings_df):
+def drop_team_assets_from_league_standings(league_standings_df):
     return league_standings_df.drop(columns=["user_team"])

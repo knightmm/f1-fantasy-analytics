@@ -4,10 +4,10 @@ import requests
 from src.utils.races import get_completed_race_numbers
 from src.transform_league import (
     make_league_standings_dataframe,
-    clean_league_standings_dataframe,
-    make_team_assets_dataframe,
-    make_clean_league_standings_dataframe,
-    cast_league_standings_dtypes
+    make_league_standings_snapshot_dataframe,
+    make_team_asset_snapshots_dataframe,
+    cast_league_standings_dtypes,
+    drop_team_assets_from_league_standings
 )
 from src.utils.paths import (
     raw_file_exists,
@@ -46,16 +46,16 @@ def main():
         
         leaderboard_df = make_league_standings_dataframe(raw_data)
                 
-        league_standings_with_assets = clean_league_standings_dataframe(leaderboard_df, raw_data, race_number)
+        league_standings_with_assets = make_league_standings_snapshot_dataframe(leaderboard_df, raw_data, race_number)
         
         league_standings_with_assets = cast_league_standings_dtypes(league_standings_with_assets)
 
-        league_team_assets = make_team_assets_dataframe(league_standings_with_assets)
+        league_team_assets = make_team_asset_snapshots_dataframe(league_standings_with_assets)
         
-        league_standings = make_clean_league_standings_dataframe(league_standings_with_assets)
+        league_standings = drop_team_assets_from_league_standings(league_standings_with_assets)
         
-        save_processed_csv(league_standings, "league_standings", race_number)
-        save_processed_csv(league_team_assets, "league_team_assets", race_number)
+        save_processed_csv(league_standings, "league_standings_snapshot", race_number)
+        save_processed_csv(league_team_assets, "team_asset_snapshot", race_number)
         print(f"Saved processed league CSVs for race {race_number}")
         
 

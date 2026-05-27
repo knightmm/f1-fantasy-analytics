@@ -114,7 +114,7 @@ def get_asset_value_changes(
             gameday_points,
             overall_points,
             selected_percentage
-        FROM mart_asset_value_changes
+        FROM mart_asset_value_changes_by_race
     """
 
     params = []
@@ -179,7 +179,7 @@ def get_latest_league_team_values(
             latest_completed_team_points,
             asset_count,
             likely_limitless_team
-        FROM mart_league_team_values_latest
+        FROM mart_team_values_latest
     """
 
     params = []
@@ -202,8 +202,8 @@ def get_latest_league_team_values(
 
 
 @app.get(
-    "/league/lineups/latest",
-    summary="Get latest league team lineups",
+    "/league/team-assets/latest",
+    summary="Get latest league team assets"
     description="""
     Returns the latest known lineups for teams in the private F1 Fantasy league.
 
@@ -218,7 +218,7 @@ def get_latest_league_team_values(
     - latest completed race points
     """
 )
-def get_latest_league_lineups(
+def get_latest_league_team_assets(
     team_name: str | None = None,
     user_name: str | None = None,
 ):
@@ -236,7 +236,7 @@ def get_latest_league_lineups(
             latest_value_change,
             overall_points,
             latest_completed_race_points
-        FROM mart_league_lineups_latest
+        FROM mart_team_assets_latest
     """
 
     params = []

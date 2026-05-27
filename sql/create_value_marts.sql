@@ -1,7 +1,7 @@
 -- Asset Value Changes by Race
-DROP TABLE IF EXISTS mart_asset_value_changes;
+DROP TABLE IF EXISTS mart_asset_value_changes_by_race;
 
-CREATE TABLE mart_asset_value_changes AS
+CREATE TABLE mart_asset_value_changes_by_race AS
 SELECT 
     season,
     race_number,
@@ -16,7 +16,7 @@ SELECT
     selected_percentage,
     retrieved_at_utc,
     feed_time_utc
-FROM assets_race_snapshots;
+FROM asset_race_snapshots;
 
 
 -- Latest Asset Points and Values
@@ -31,7 +31,7 @@ WITH latest_completed AS (
 
 latest_price_feed AS (
     SELECT MAX(race_number) AS race_number
-    FROM assets_race_snapshots
+    FROM asset_race_snapshots
 ),
 
 latest_points AS (
@@ -43,7 +43,7 @@ latest_points AS (
         a.overall_points,
         a.gameday_points,
         a.selected_percentage
-    FROM assets_race_snapshots a
+    FROM asset_race_snapshots a
     JOIN latest_completed lc
         ON a.race_number = lc.race_number
 ),
@@ -60,7 +60,7 @@ latest_prices AS (
         ROUND(a.value - a.old_asset_value, 1) AS latest_value_change,
         a.retrieved_at_utc,
         a.feed_time_utc
-    FROM assets_race_snapshots a
+    FROM asset_race_snapshots a
     JOIN latest_price_feed lpf
         ON a.race_number = lpf.race_number
 )
@@ -83,27 +83,27 @@ SELECT
 FROM latest_prices p
 LEFT JOIN latest_points pts
     ON p.asset_id = pts.asset_id
-    AND p.asset_type = pts.asset_type;
+   AND p.asset_type = pts.asset_type;
 
 
--- Latest league lineups with asset details
-DROP TABLE IF EXISTS mart_league_lineups_latest;
+-- Latest Team Assets with Asset Details
+DROP TABLE IF EXISTS mart_team_assets_latest;
 
-CREATE TABLE mart_league_lineups_latest AS
+CREATE TABLE mart_team_assets_latest AS
 WITH latest_race AS (
     SELECT MAX(race_number) AS race_number
-    FROM league_team_assets
+    FROM team_asset_snapshots
 )
 
 SELECT
-    lta.season,
-    lta.race_number AS team_snapshot_race_number,
-    lta.user_guid,
-    ls.team_no,
-    ls.team_name,
-    ls.user_name,
+    tas.season,
+    tas.race_number AS team_snapshot_race_number,
+    tas.user_guid,
+    lss.team_no,
+    lss.team_name,
+    lss.user_name,
 
-    lta.asset_id,
+    tas.asset_id,
     mal.asset_type,
     mal.display_name,
     mal.current_value,
@@ -113,29 +113,29 @@ SELECT
     mal.points_race_number,
     mal.price_feed_race_number
 
-FROM league_team_assets lta
+FROM team_asset_snapshots tas
 
 JOIN latest_race lr
-    ON lta.race_number = lr.race_number
+    ON tas.race_number = lr.race_number
 
-LEFT JOIN league_standings ls
-    ON lta.season = ls.season
-   AND lta.race_number = ls.race_number
-   AND lta.user_guid = ls.user_guid
+LEFT JOIN league_standings_snapshots lss
+    ON tas.season = lss.season
+   AND tas.race_number = lss.race_number
+   AND tas.user_guid = lss.user_guid
 
 LEFT JOIN mart_assets_latest mal
-    ON lta.asset_id = mal.asset_id
+    ON tas.asset_id = mal.asset_id
 
 ORDER BY
-    ls.team_name,
+    lss.team_name,
     mal.asset_type,
     mal.current_value DESC;
 
 
--- Latest league team values
-DROP TABLE IF EXISTS mart_league_team_values_latest;
+-- Latest Team Values
+DROP TABLE IF EXISTS mart_team_values_latest;
 
-CREATE TABLE mart_league_team_values_latest AS
+CREATE TABLE mart_team_values_latest AS
 SELECT
     season,
     team_snapshot_race_number,
@@ -155,7 +155,7 @@ SELECT
         ELSE 0
     END AS likely_limitless_team
 
-FROM mart_league_lineups_latest
+FROM mart_team_assets_latest
 
 GROUP BY
     season,
