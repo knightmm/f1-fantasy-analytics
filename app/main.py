@@ -100,6 +100,7 @@ def get_asset_value_changes(
     asset_type: str | None = None,
     display_name: str | None = None,
     race_number: int | None = None,
+    limit: int = 20,
 ):
     query = """
         SELECT
@@ -137,10 +138,10 @@ def get_asset_value_changes(
 
     query += """
         ORDER BY
-            race_number,
-            asset_type,
-            display_name
+            value_change DESC
+        LIMIT ?
     """
+    params.append(limit)
 
     return run_query(query, params)
 
