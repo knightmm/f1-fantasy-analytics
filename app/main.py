@@ -152,14 +152,22 @@ def get_asset_value_changes(
     Returns the latest estimated values of teams in the private F1 Fantasy league
     using the most recent asset prices.
 
+    Grain:
+    - one row per team
+
     Includes:
     - current team value
     - latest total team value change
+    - latest completed race points
+    - asset count
     - team owner information
     - likely limitless chip usage detection
     """
 )
-def get_latest_league_team_values():
+def get_latest_league_team_values(
+    team_name: str | None = None,
+    user_name: str | None = None,
+):
     query = """
         SELECT
             team_snapshot_race_number,
@@ -168,9 +176,88 @@ def get_latest_league_team_values():
             user_name,
             current_team_value,
             total_team_value_change,
+            latest_completed_team_points,
+            asset_count,
             likely_limitless_team
         FROM mart_league_team_values_latest
-        ORDER BY current_team_value DESC
     """
 
-    return run_query(query)
+    params = []
+    filters = []
+
+    if team_name:
+        filters.append("LOWER(team_name) LIKE LOWER(?)")
+        params.append(f"%{team_name}%")
+
+    if user_name:
+        filters.append("LOWER(user_name) LIKE LOWER(?)")
+        params.append(f"%{user_name}%")
+
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+
+    query += " ORDER BY current_team_value DESC"
+
+    return run_query(query, params)
+
+
+@app.get(
+    "/league/lineups/latest",
+    summary="Get latest league team lineups",
+    description="""
+    Returns the latest known lineups for teams in the private F1 Fantasy league.
+
+    Grain:
+    - one row per asset in each team's latest lineup
+
+    Includes:
+    - team and user information
+    - asset names and types
+    - current asset values
+    - latest value changes
+    - latest completed race points
+    """
+)
+def get_latest_league_lineups(
+    team_name: str | None = None,
+    user_name: str | None = None,
+):
+    query = """
+        SELECT
+            team_snapshot_race_number,
+            price_feed_race_number,
+            points_race_number,
+            team_name,
+            user_name,
+            asset_id,
+            asset_type,
+            display_name,
+            current_value,
+            latest_value_change,
+            overall_points,
+            latest_completed_race_points
+        FROM mart_league_lineups_latest
+    """
+
+    params = []
+    filters = []
+
+    if team_name:
+        filters.append("LOWER(team_name) LIKE LOWER(?)")
+        params.append(f"%{team_name}%")
+
+    if user_name:
+        filters.append("LOWER(user_name) LIKE LOWER(?)")
+        params.append(f"%{user_name}%")
+
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+
+    query += """
+        ORDER BY
+            team_name,
+            asset_type,
+            current_value DESC
+    """
+
+    return run_query(query, params)
