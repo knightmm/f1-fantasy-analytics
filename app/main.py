@@ -203,7 +203,7 @@ def get_latest_league_team_values(
 
 @app.get(
     "/league/team-assets/latest",
-    summary="Get latest league team assets"
+    summary="Get latest league team assets",
     description="""
     Returns the latest known lineups for teams in the private F1 Fantasy league.
 
