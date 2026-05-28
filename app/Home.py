@@ -1,11 +1,11 @@
 import streamlit as st
+from config import API_URL
 import pandas as pd
 import requests
 import plotly.express as px
 
-API_URL = "http://127.0.0.1:8000"
-
 st.title("F1 Fantasy Dashboard")
+st.subheader("Current Standings")
 
 response = requests.get(
     f"{API_URL}/league/team-values/latest"
