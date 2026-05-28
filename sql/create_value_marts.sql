@@ -168,3 +168,100 @@ GROUP BY
 
 ORDER BY current_team_value DESC;
 
+
+-- Team Values with Asset Prices and Performance per Race
+DROP TABLE IF EXISTS mart_team_values_by_race;
+
+CREATE TABLE mart_team_values_by_race AS
+WITH team_asset_performance AS (
+
+    SELECT
+        tas.season,
+        tas.race_number,
+        tas.team_name,
+        tas.user_name,
+        tas.team_no,
+        tas.asset_id,
+        avr.value,
+        avr.value_change,
+        avr.gameday_points
+    FROM team_asset_snapshots tas
+    LEFT JOIN mart_asset_value_changes_by_race avr
+        ON tas.season = avr.season
+        AND tas.race_number = avr.race_number
+        AND tas.asset_id = avr.asset_id
+
+)
+
+SELECT
+    season,
+    race_number,
+    team_name,
+    user_name,
+    team_no,
+    ROUND(SUM(value), 1) AS team_value,
+    ROUND(SUM(value_change), 1) AS team_value_change,
+    SUM(gameday_points) AS calculated_asset_points,
+    CASE
+        WHEN ROUND(SUM(value), 1) > 130 THEN 1
+        ELSE 0
+    END AS likely_limitless_team
+FROM team_asset_performance
+GROUP BY
+    season,
+    race_number,
+    team_name,
+    user_name,
+    team_no;
+
+
+-- Season Team Performance
+DROP TABLE IF EXISTS mart_team_season_summary;
+
+CREATE TABLE mart_team_season_summary AS
+WITH latest_race AS (
+    SELECT
+        season,
+        MAX(race_number) AS latest_race_number
+    FROM mart_team_values_by_race
+    GROUP BY season
+),
+
+team_season_totals AS (
+    SELECT
+        season,
+        team_name,
+        MAX(user_name) AS user_name,
+        MAX(team_no) AS team_no,
+        SUM(calculated_asset_points) AS cumulative_calculated_points,
+        MAX(likely_limitless_team) AS has_used_limitless
+    FROM mart_team_values_by_race
+    GROUP BY
+        season,
+        team_name
+),
+
+latest_team_values AS (
+    SELECT
+        tv.*
+    FROM mart_team_values_by_race tv
+    JOIN latest_race lr
+        ON tv.season = lr.season
+        AND tv.race_number = lr.latest_race_number
+)
+
+SELECT
+    tst.season,
+    ltv.race_number AS latest_race_number,
+    tst.team_name,
+    tst.user_name,
+    tst.team_no,
+    tst.cumulative_calculated_points,
+    ltv.team_value AS latest_team_value,
+    ltv.team_value_change AS latest_team_value_change,
+    ltv.calculated_asset_points AS latest_calculated_asset_points,
+    tst.has_used_limitless
+FROM team_season_totals tst
+LEFT JOIN latest_team_values ltv
+    ON tst.season = ltv.season
+    AND tst.team_name = ltv.team_name;

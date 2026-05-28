@@ -262,3 +262,109 @@ def get_latest_league_team_assets(
     """
 
     return run_query(query, params)
+
+@app.get(
+    "/league/team-season-summary",
+    summary="Get current team season summary",
+    description="""
+    Returns one row per team with season-to-date calculated points,
+    latest team value, latest race points, and likely Limitless usage.
+
+    Grain:
+    - one row per team
+
+    Notes:
+    - points are calculated from asset points, not official league standings
+    - Limitless usage is estimated from unusually high team value
+    """
+)
+def get_team_season_summary(
+    team_name: str | None = None,
+    user_name: str | None = None,
+):
+    query = """
+        SELECT
+            season,
+            latest_race_number,
+            team_name,
+            user_name,
+            cumulative_calculated_points,
+            latest_team_value,
+            latest_team_value_change,
+            latest_calculated_asset_points,
+            has_used_limitless
+        FROM mart_team_season_summary
+    """
+
+    params = []
+    filters = []
+
+    if team_name:
+        filters.append("LOWER(team_name) LIKE LOWER(?)")
+        params.append(f"%{team_name}%")
+
+    if user_name:
+        filters.append("LOWER(user_name) LIKE LOWER(?)")
+        params.append(f"%{user_name}%")
+
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+
+    query += " ORDER BY cumulative_calculated_points DESC"
+
+    return run_query(query, params)
+
+
+@app.get(
+    "/league/team-values/by-race",
+    summary="Get team values by race",
+    description="""
+    Returns team value and calculated asset points for each team by race.
+
+    Grain:
+    - one row per team per race
+
+    Notes:
+    - points are calculated from asset points, not official league standings
+    - Limitless usage is estimated from unusually high team value
+    """
+)
+def get_team_values_by_race(
+    race_number: int | None = None,
+    team_name: str | None = None,
+    user_name: str | None = None,
+):
+    query = """
+        SELECT
+            season,
+            race_number,
+            team_name,
+            user_name,
+            team_value,
+            team_value_change,
+            calculated_asset_points,
+            likely_limitless_team
+        FROM mart_team_values_by_race
+    """
+
+    params = []
+    filters = []
+
+    if race_number:
+        filters.append("race_number = ?")
+        params.append(race_number)
+
+    if team_name:
+        filters.append("LOWER(team_name) LIKE LOWER(?)")
+        params.append(f"%{team_name}%")
+
+    if user_name:
+        filters.append("LOWER(user_name) LIKE LOWER(?)")
+        params.append(f"%{user_name}%")
+
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+
+    query += " ORDER BY race_number, calculated_asset_points DESC"
+
+    return run_query(query, params)
