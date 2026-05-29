@@ -40,6 +40,7 @@ selected_team = st.selectbox(
 my_row = df[df["team_name"] == selected_team].iloc[0]
 my_season_row = season_df[season_df["team_name"] == selected_team].iloc[0]
 
+# Display Metrics
 st.subheader(f"{selected_team} Overview")
 
 col1, col2, col3, col4 = st.columns(4)
@@ -65,8 +66,7 @@ col4.metric(
     f"{my_row['total_team_value_change']:+.1f}m"
 )
 
-
-# Season Standings
+# Season Display Dataframe Config
 season_display_df = season_df[
     [
         "team_name",
@@ -91,13 +91,7 @@ season_display_df = season_df[
 
 season_display_df.index = season_display_df.index + 1
 
-st.subheader("Season Overall")
-st.dataframe(season_display_df)
-
-
-# Latest Team Values
-
-st.subheader("Last Race Results")
+# Limitless Checkbox
 exclude_limitless = st.checkbox(
     "Exclude likely limitless teams",
     value=True
@@ -108,6 +102,7 @@ if exclude_limitless:
 else:
     chart_df = df
 
+# Display Dataframe Config
 display_df = df[
     [
         "team_name",
@@ -129,38 +124,69 @@ display_df = df[
 )
 
 display_df.index = display_df.index + 1
-st.dataframe(display_df)
 
+# Value Charts
 col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("Team Value Leaderboard")
+    st.caption("Going into the next race")
 
     team_value_df = chart_df.sort_values(
         "current_team_value",
         ascending=True
     )
+    
+    # To highlight the team that is selected in the dropdown
+    team_value_df["selected_status"] = team_value_df["team_name"].apply(
+    lambda x: "Selected Team" if x == selected_team else "Other Teams"
+    )
+    team_order = team_value_df["team_name"].tolist()
 
     fig_value = px.bar(
-        team_value_df,
-        x="current_team_value",
-        y="team_name",
-        orientation="h",
-        text="current_team_value",
+    team_value_df,
+    x="current_team_value",
+    y="team_name",
+    orientation="h",
+    text="current_team_value",
+    color="selected_status",
+    color_discrete_map={
+        "Selected Team": "#FFBE0B",
+        "Other Teams": "#8ECAE6",
+    },
+    labels={
+        "current_team_value": "Team Value ($m)",
+        "team_name": "Team",
+    }
     )
 
     fig_value.update_traces(
         textposition="inside",
         texttemplate="%{text:.1f}"
-    )    
+    )
+    
+    fig_value.update_layout(
+    showlegend=False,
+    yaxis_title=None,
+    yaxis={
+        "categoryorder": "array",
+        "categoryarray": team_order,
+    }
+)
+    
     st.plotly_chart(fig_value, use_container_width=True)
 
 with col2:
     st.subheader("Team Value Growth")
+    st.caption("Going into the next race")
 
     growth_df = chart_df.sort_values(
         "total_team_value_change",
         ascending=True
+    ).copy()
+
+    growth_df["growth_direction"] = growth_df["total_team_value_change"].apply(
+        lambda x: "Increase" if x >= 0 else "Decrease"
     )
 
     fig_growth = px.bar(
@@ -169,10 +195,60 @@ with col2:
         y="team_name",
         orientation="h",
         text="total_team_value_change",
+        color="growth_direction",
+        color_discrete_map={
+            "Increase": "#8ECAE6",
+            "Decrease": "#6C757D",
+        },
+        labels={
+        "total_team_value_change": "Value Change ($m)",
+        "team_name": "Team",
+        }
     )
-    
+
     fig_growth.update_traces(
         textposition="inside",
         texttemplate="%{text:.1f}"
     )
+    
+    fig_growth.update_layout(
+    showlegend=False
+    )
+
     st.plotly_chart(fig_growth, use_container_width=True)
+
+st.subheader("Last Race Points")
+
+points_df = chart_df.sort_values(
+    "latest_completed_team_points",
+    ascending=False
+)
+
+fig_points = px.bar(
+    points_df,
+    x="team_name",
+    y="latest_completed_team_points",
+    text="latest_completed_team_points",
+    labels={
+    "latest_completed_team_points": "Points",
+    "team_name": "Team",
+    }
+)
+
+fig_points.update_traces(
+    textposition="inside",
+    texttemplate="%{text:.0f}"
+)
+
+st.plotly_chart(fig_points, use_container_width=True)
+
+
+# Display Latest Race Dataframe
+st.subheader("Last Race Results")
+st.dataframe(display_df)
+
+# Display Season Overall Dataframe
+st.subheader("Season Overall")
+st.dataframe(season_display_df)
+
+
