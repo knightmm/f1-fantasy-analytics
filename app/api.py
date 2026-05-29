@@ -336,22 +336,28 @@ def get_team_values_by_race(
 ):
     query = """
         SELECT
-            season,
-            race_number,
-            team_name,
-            user_name,
-            team_value,
-            team_value_change,
-            calculated_asset_points,
-            likely_limitless_team
-        FROM mart_team_values_by_race
+            tv.season,
+            tv.race_number,
+            r.race_name,
+            r.race_date,
+            r.sprint_weekend,
+            tv.team_name,
+            tv.user_name,
+            tv.team_value,
+            tv.team_value_change,
+            tv.calculated_asset_points,
+            tv.likely_limitless_team
+        FROM mart_team_values_by_race AS tv
+        LEFT JOIN races AS r
+            ON tv.season = r.season
+            AND tv.race_number = r.race_number
     """
 
     params = []
     filters = []
 
     if race_number:
-        filters.append("race_number = ?")
+        filters.append("tv.race_number = ?")
         params.append(race_number)
 
     if team_name:
@@ -365,6 +371,6 @@ def get_team_values_by_race(
     if filters:
         query += " WHERE " + " AND ".join(filters)
 
-    query += " ORDER BY race_number, calculated_asset_points DESC"
+    query += " ORDER BY tv.race_number DESC, tv.calculated_asset_points DESC"
 
     return run_query(query, params)

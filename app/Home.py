@@ -4,7 +4,7 @@ import pandas as pd
 import requests
 import plotly.express as px
 
-st.title("F1 Fantasy Dashboard")
+st.title("🏁 F1 Fantasy Dashboard")
 
 # Latest team values
 response = requests.get(f"{API_URL}/league/team-values/latest")
