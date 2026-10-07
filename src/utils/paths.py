@@ -1,6 +1,13 @@
 import os
 import json
 
+# Season-level datasets
+def get_season_processed_file_path(dataset_name, season):
+    return os.path.join(
+        "data",
+        "processed",
+        f"{dataset_name}_{season}.csv"
+    )
 
 # Race-level datasets
 def get_raw_file_path(dataset_name, race_number):
