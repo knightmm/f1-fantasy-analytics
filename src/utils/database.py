@@ -12,7 +12,11 @@ def load_csvs_to_table(
 
     # Find CSVs
     for file in os.listdir(processed_dir):
-        if file.startswith(file_prefix):
+        if (
+            file.startswith(file_prefix)
+            and file.endswith(".csv")
+            and file[len(file_prefix):-4].isdigit()
+        ):
             matching_files.append(file)
 
     matching_files.sort()

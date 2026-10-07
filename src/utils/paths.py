@@ -41,9 +41,8 @@ def get_processed_file_path(dataset_name, race_number):
     return os.path.join(
         "data",
         "processed",
-        f"{dataset_name}_race_{race_number}.csv"
+        f"{dataset_name}_{race_number}.csv"
     )
-
 
 def save_processed_csv(data, dataset_name, race_number):
     file_path = get_processed_file_path(dataset_name, race_number)

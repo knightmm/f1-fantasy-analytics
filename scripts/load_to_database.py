@@ -1,3 +1,4 @@
+
 import sqlite3
 import pandas as pd
 import os
@@ -13,31 +14,51 @@ def main():
 
         load_csvs_to_table(
             PROCESSED_DIR,
-            "asset_snapshot_race_",
-            "asset_race_snapshots",
+            "asset_race_",
+            "asset_race",
             con,
         )
 
         load_csvs_to_table(
             PROCESSED_DIR,
-            "league_standings_snapshot_race_",
-            "league_standings_snapshots",
+            "team_race_",
+            "team_race",
             con,
         )
 
         load_csvs_to_table(
             PROCESSED_DIR,
-            "team_asset_snapshot_race_",
-            "team_asset_snapshots",
+            "team_race_asset_",
+            "team_race_asset",
             con,
         )
 
+        # Load team chip usage
+        chip_usage_filepath = os.path.join(
+            PROCESSED_DIR, "team_chip_usage_2026.csv"
+        )
+
+        chip_usage_df = pd.read_csv(chip_usage_filepath)
+        chip_usage_df.to_sql(
+            "team_chip_usage",
+            con,
+            if_exists="replace",
+            index=False,
+        )
+
+        # Load race reference data
         races_filepath = os.path.join("data", "reference", "races_2026.csv")
 
         races_df = pd.read_csv(races_filepath)
         races_df["race_date"] = pd.to_datetime(races_df["race_date"], utc=True)
 
         races_df.to_sql("races", con, if_exists="replace", index=False)
+
+        # Load chip reference data
+        chips_filepath = os.path.join("data", "reference", "chips_2026.csv")
+
+        chips_df = pd.read_csv(chips_filepath)
+        chips_df.to_sql("chips", con, if_exists="replace", index=False)
 
         print("Database load complete.")
 
