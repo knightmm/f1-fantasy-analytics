@@ -1,3 +1,4 @@
+
 from src.utils.races import get_completed_race_numbers
 from src.utils.paths import (
     get_processed_file_path,
@@ -19,24 +20,24 @@ def main():
     completed_races = get_completed_race_numbers()
     latest_race = max(completed_races)
 
-    # Load latest processed public league standings to identify league teams
-    league_path = get_processed_file_path(
-        "league_standings_snapshot",
+    # Load latest processed team race data to identify league teams
+    team_race_path = get_processed_file_path(
+        "team_race",
         latest_race
     )
 
-    league = pd.read_csv(league_path)
+    team_race = pd.read_csv(team_race_path)
 
-    league_teams = league[
+    teams = team_race[
         ["user_guid", "team_no"]
     ].drop_duplicates()
 
     # Load each team's raw detailed JSON for the latest race
     chip_usage_dfs = []
 
-    for _, league_team in league_teams.iterrows():
-        user_guid = league_team["user_guid"]
-        team_no = int(league_team["team_no"])
+    for _, fantasy_team in teams.iterrows():
+        user_guid = fantasy_team["user_guid"]
+        team_no = int(fantasy_team["team_no"])
 
         detailed_team_raw = load_detailed_team_raw(
             user_guid,
@@ -46,7 +47,7 @@ def main():
         
         team = detailed_team_raw["Data"]["Value"]["userTeam"][0]
         
-    # Transform chip usage data for this team
+        # Transform chip usage data for this team
         chip_usage = make_team_chip_usage_dataframe(team, user_guid)
         chip_usage_dfs.append(chip_usage)
 
@@ -72,9 +73,9 @@ def main():
     asset_dfs = []
 
     for race_number in completed_races:
-        for _, league_team in league_teams.iterrows():
-            user_guid = league_team["user_guid"]
-            team_no = int(league_team["team_no"])
+        for _, fantasy_team in teams.iterrows():
+            user_guid = fantasy_team["user_guid"]
+            team_no = int(fantasy_team["team_no"])
 
             detailed_team_raw = load_detailed_team_raw(
                 user_guid,
@@ -94,11 +95,11 @@ def main():
 
     detailed_team_assets = pd.concat(asset_dfs, ignore_index=True)
 
-    # Enrich existing team asset snapshots
+    # Enrich existing team race asset data
 
     for race_number in completed_races:
         team_assets = pd.read_csv(
-            get_processed_file_path("team_asset_snapshot", race_number)
+            get_processed_file_path("team_race_asset", race_number)
         )
 
         # Remove existing enrichment columns if the pipeline has already been run
@@ -147,23 +148,23 @@ def main():
             f"Unmatched team assets found for race {race_number}"
         )
 
-        # Save enriched snapshot
+        # Save enriched team race asset data
         save_processed_csv(
             enriched_team_assets,
-            "team_asset_snapshot",
+            "team_race_asset",
             race_number
         )
 
-    print(f"Enriched team asset snapshots for {len(completed_races)} races")
+    print(f"Enriched team race assets for {len(completed_races)} races")
 
     # 3. Detailed team race data
 
     race_dfs = []
 
     for race_number in completed_races:
-        for _, league_team in league_teams.iterrows():
-            user_guid = league_team["user_guid"]
-            team_no = int(league_team["team_no"])
+        for _, fantasy_team in teams.iterrows():
+            user_guid = fantasy_team["user_guid"]
+            team_no = int(fantasy_team["team_no"])
 
             detailed_team_raw = load_detailed_team_raw(
                 user_guid,
@@ -183,8 +184,7 @@ def main():
 
     detailed_team_races = pd.concat(race_dfs, ignore_index=True)
 
-
-    # Enrich existing league standings snapshots
+    # Enrich existing team race data
 
     enrichment_columns = [
         "recorded_asset_value",
@@ -195,12 +195,12 @@ def main():
     ]
 
     for race_number in completed_races:
-        standings = pd.read_csv(
-            get_processed_file_path("league_standings_snapshot", race_number)
+        team_race = pd.read_csv(
+            get_processed_file_path("team_race", race_number)
         )
 
         # Remove existing enrichment columns if the pipeline has already been run
-        standings = standings.drop(
+        team_race = team_race.drop(
             columns=enrichment_columns,
             errors="ignore"
         )
@@ -209,7 +209,7 @@ def main():
             detailed_team_races["race_number"] == race_number
         ]
 
-        enriched_standings = standings.merge(
+        enriched_team_race = team_race.merge(
             detailed_race,
             on=["season", "race_number", "user_guid", "team_no"],
             how="left",
@@ -217,17 +217,17 @@ def main():
         )
 
         # Every league team should have a corresponding detailed record
-        assert enriched_standings["remaining_budget"].notna().all(), (
+        assert enriched_team_race["remaining_budget"].notna().all(), (
             f"Unmatched detailed teams found for race {race_number}"
         )
 
         save_processed_csv(
-            enriched_standings,
-            "league_standings_snapshot",
+            enriched_team_race,
+            "team_race",
             race_number
         )
 
-    print(f"Enriched league standings snapshots for {len(completed_races)} races")
+    print(f"Enriched team race data for {len(completed_races)} races")
     
 if __name__ == "__main__":
     main()

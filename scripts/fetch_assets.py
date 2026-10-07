@@ -1,5 +1,3 @@
-# fetch_assets.py
-
 import requests
 from src.utils.races import get_completed_race_numbers
 from src.utils.paths import (
@@ -26,11 +24,11 @@ def main():
     completed_races = get_completed_race_numbers()
 
     # Fetch completed races + next price feed
-    asset_snapshot_races = range(1, max(completed_races) + 2)
+    asset_races = range(1, max(completed_races) + 2)
 
-    for race_number in asset_snapshot_races:
-        if raw_file_exists("asset", race_number):
-            data = load_raw_json("asset", race_number)
+    for race_number in asset_races:
+        if raw_file_exists("asset_snapshot", race_number):
+            data = load_raw_json("asset_snapshot", race_number)
             print(f"Loaded existing asset Race {race_number} JSON")
         else:
             data = fetch_assets(race_number)
@@ -41,7 +39,7 @@ def main():
         df = rename_asset_columns(df)
         df = cast_asset_dtypes(df)
 
-        save_processed_csv(df, "asset_snapshot", race_number)
+        save_processed_csv(df, "asset_race", race_number)
         print(f"Saved asset CSV for race {race_number}")
 
 
