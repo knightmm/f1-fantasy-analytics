@@ -1,5 +1,5 @@
 from scripts.fetch_assets import main as fetch_assets
-from scripts.fetch_league_results import main as fetch_league_results
+from scripts.fetch_teams import main as fetch_league_results
 from scripts.fetch_detailed_teams import main as fetch_detailed_teams
 from scripts.prepare_detailed_teams import main as prepare_detailed_teams
 from scripts.load_to_database import main as load_to_database
