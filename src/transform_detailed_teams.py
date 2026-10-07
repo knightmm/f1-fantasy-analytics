@@ -44,3 +44,20 @@ def make_detailed_team_assets_dataframe(team, user_guid, race_number):
         })
 
     return pd.DataFrame(records)
+
+def make_detailed_team_race_dataframe(team, user_guid, race_number):
+    return pd.DataFrame([{
+        "season": 2026,
+        "race_number": race_number,
+        "user_guid": user_guid,
+        "team_no": team["teamno"],
+        "recorded_asset_value": team.get("teamval"),
+        "remaining_budget": team.get("teambal"),
+        "recorded_total_budget": team.get("maxteambal"),
+        "transfers_made": team.get("usersubs"),
+        "free_transfers_remaining": team.get("usersubsleft"),
+    }]).astype({
+        "recorded_asset_value": "float64",
+        "remaining_budget": "float64",
+        "recorded_total_budget": "float64",
+    })

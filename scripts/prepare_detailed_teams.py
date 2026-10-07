@@ -8,7 +8,8 @@ from src.utils.paths import (
 import pandas as pd
 from src.transform_detailed_teams import (
     make_team_chip_usage_dataframe,
-    make_detailed_team_assets_dataframe
+    make_detailed_team_assets_dataframe,
+    make_detailed_team_race_dataframe,
 )
 
 # 1. Chip Usage
@@ -152,3 +153,77 @@ for race_number in completed_races:
     )
 
 print(f"Enriched team asset snapshots for {len(completed_races)} races")
+
+# 3. Detailed team race data
+
+race_dfs = []
+
+for race_number in completed_races:
+    for _, league_team in league_teams.iterrows():
+        user_guid = league_team["user_guid"]
+        team_no = int(league_team["team_no"])
+
+        detailed_team_raw = load_detailed_team_raw(
+            user_guid,
+            team_no,
+            race_number
+        )
+
+        team = detailed_team_raw["Data"]["Value"]["userTeam"][0]
+
+        race_df = make_detailed_team_race_dataframe(
+            team,
+            user_guid,
+            race_number
+        )
+
+        race_dfs.append(race_df)
+
+detailed_team_races = pd.concat(race_dfs, ignore_index=True)
+
+
+# Enrich existing league standings snapshots
+
+enrichment_columns = [
+    "recorded_asset_value",
+    "remaining_budget",
+    "recorded_total_budget",
+    "transfers_made",
+    "free_transfers_remaining",
+]
+
+for race_number in completed_races:
+    standings = pd.read_csv(
+        get_processed_file_path("league_standings_snapshot", race_number)
+    )
+
+    # Remove existing enrichment columns if the pipeline has already been run
+    standings = standings.drop(
+        columns=enrichment_columns,
+        errors="ignore"
+    )
+
+    detailed_race = detailed_team_races[
+        detailed_team_races["race_number"] == race_number
+    ]
+
+    enriched_standings = standings.merge(
+        detailed_race,
+        on=["season", "race_number", "user_guid", "team_no"],
+        how="left",
+        validate="one_to_one"
+    )
+
+    # Every league team should have a corresponding detailed record
+    assert enriched_standings["remaining_budget"].notna().all(), (
+        f"Unmatched detailed teams found for race {race_number}"
+    )
+
+    save_processed_csv(
+        enriched_standings,
+        "league_standings_snapshot",
+        race_number
+    )
+
+print(f"Enriched league standings snapshots for {len(completed_races)} races")
+
