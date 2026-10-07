@@ -58,6 +58,25 @@ Returns team composition, captain flags, team value, remaining balance, substitu
 Team records are under `Data.Value.userTeam`; selected assets are in `playerid`.
 
 
+### Team and asset fields
+
+| Field | Meaning |
+| --- | --- |
+| `Data.Value.mdid` | Requested race number; stored as `race_number` |
+| `matchday` | Observed as `1` across races; not the race number |
+| `playerid[].id` | Asset ID |
+| `iscaptain` / `capplayerid` | Regular 2× DRS captain flag / asset ID |
+| `ismgcaptain` / `mgcapplayerid` | 3× Extra DRS captain flag / asset ID |
+| `playerpostion` | Lineup slot; API spelling retained here |
+| `isfinal` | Final Fix status: `0` = unaffected, `1` = incoming asset, `2` = outgoing asset |
+| `finalfxoldplayerid`, `finalfxnewplayerid` | Assets replaced and introduced through Final Fix |
+| `boosterid` | Chip active for the requested race |
+| `teambal`, `teamval`, `maxteambal` | Remaining cash, selected-team value and total budget |
+
+Final Fix can leave both the outgoing and incoming assets in `playerid`, producing eight rows; the incoming asset has been observed at slot `8`. Preserve the swap status when analysing the lineup rather than assuming every response contains seven assets.
+
+`team_info` repeats the budget and substitution fields from the parent team record. Keep one set in the processed data. Missing `teamval` values should remain missing rather than being replaced with zero.
+
 ## Opponent game-day summary
 
 ```text
@@ -73,8 +92,8 @@ The historical team endpoint combines race details with season-level information
 | Scope | Fields |
 | --- | --- |
 | Requested race | Selected assets, captain and race points |
-| Season/current | Chip usage and current overall points |
-| Additional team details | Value, balance, substitutions and ranks |
+| Season/current | Chip usage, current overall points and overall rank |
+| Additional team details | Value, balance, substitutions and race rank |
 
 Keep race details and season/current values separate when transforming the response. Match each chip’s usage-race field (`…takengd`) to the requested race to identify the chip used that week.
 
