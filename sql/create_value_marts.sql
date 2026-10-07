@@ -101,8 +101,6 @@ SELECT
     tas.user_guid,
     lss.team_no,
     lss.team_name,
-    lss.user_name,
-
     tas.asset_id,
     mal.asset_type,
     mal.display_name,
@@ -122,6 +120,7 @@ LEFT JOIN league_standings_snapshots lss
     ON tas.season = lss.season
    AND tas.race_number = lss.race_number
    AND tas.user_guid = lss.user_guid
+   AND tas.team_no = lss.team_no
 
 LEFT JOIN mart_assets_latest mal
     ON tas.asset_id = mal.asset_id
@@ -143,8 +142,6 @@ SELECT
     user_guid,
     team_no,
     team_name,
-    user_name,
-
     ROUND(SUM(current_value), 1) AS current_team_value,
     ROUND(SUM(latest_value_change), 1) AS total_team_value_change,
     ROUND(SUM(latest_completed_race_points), 1) AS latest_completed_team_points,
@@ -163,8 +160,7 @@ GROUP BY
     price_feed_race_number,
     user_guid,
     team_no,
-    team_name,
-    user_name
+    team_name
 
 ORDER BY current_team_value DESC;
 
@@ -179,7 +175,6 @@ WITH team_asset_performance AS (
         tas.season,
         tas.race_number,
         tas.team_name,
-        tas.user_name,
         tas.team_no,
         tas.asset_id,
         avr.value,
@@ -197,7 +192,6 @@ SELECT
     season,
     race_number,
     team_name,
-    user_name,
     team_no,
     ROUND(SUM(value), 1) AS team_value,
     ROUND(SUM(value_change), 1) AS team_value_change,
@@ -211,7 +205,6 @@ GROUP BY
     season,
     race_number,
     team_name,
-    user_name,
     team_no;
 
 
@@ -231,7 +224,6 @@ team_season_totals AS (
     SELECT
         season,
         team_name,
-        MAX(user_name) AS user_name,
         MAX(team_no) AS team_no,
         SUM(calculated_asset_points) AS cumulative_calculated_points,
         MAX(likely_limitless_team) AS has_used_limitless
@@ -254,7 +246,6 @@ SELECT
     tst.season,
     ltv.race_number AS latest_race_number,
     tst.team_name,
-    tst.user_name,
     tst.team_no,
     tst.cumulative_calculated_points,
     ltv.team_value AS latest_team_value,

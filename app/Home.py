@@ -70,7 +70,6 @@ col4.metric(
 season_display_df = season_df[
     [
         "team_name",
-        "user_name",
         "cumulative_calculated_points",
         "latest_team_value",
         "latest_team_value_change",
@@ -80,7 +79,6 @@ season_display_df = season_df[
 ].rename(
     columns={
         "team_name": "Team",
-        "user_name": "User",
         "cumulative_calculated_points": "Total Points",
         "latest_team_value": "Team Value",
         "latest_team_value_change": "Value Change",
@@ -106,7 +104,6 @@ else:
 display_df = df[
     [
         "team_name",
-        "user_name",
         "latest_completed_team_points",
         "total_team_value_change",
         "current_team_value",
@@ -115,7 +112,6 @@ display_df = df[
 ].rename(
     columns={
         "team_name": "Team",
-        "user_name": "User",
         "latest_completed_team_points": "Last Race Points",
         "total_team_value_change": "Value Change",
         "current_team_value": "Team Value",
@@ -139,25 +135,25 @@ with col1:
     
     # To highlight the team that is selected in the dropdown
     team_value_df["selected_status"] = team_value_df["team_name"].apply(
-    lambda x: "Selected Team" if x == selected_team else "Other Teams"
+        lambda x: "Selected Team" if x == selected_team else "Other Teams"
     )
     team_order = team_value_df["team_name"].tolist()
 
     fig_value = px.bar(
-    team_value_df,
-    x="current_team_value",
-    y="team_name",
-    orientation="h",
-    text="current_team_value",
-    color="selected_status",
-    color_discrete_map={
-        "Selected Team": "#FFBE0B",
-        "Other Teams": "#8ECAE6",
-    },
-    labels={
-        "current_team_value": "Team Value ($m)",
-        "team_name": "Team",
-    }
+        team_value_df,
+        x="current_team_value",
+        y="team_name",
+        orientation="h",
+        text="current_team_value",
+        color="selected_status",
+        color_discrete_map={
+            "Selected Team": "#FFBE0B",
+            "Other Teams": "#8ECAE6",
+        },
+        labels={
+            "current_team_value": "Team Value ($m)",
+            "team_name": "Team",
+        }
     )
 
     fig_value.update_traces(
@@ -166,13 +162,13 @@ with col1:
     )
     
     fig_value.update_layout(
-    showlegend=False,
-    yaxis_title=None,
-    yaxis={
-        "categoryorder": "array",
-        "categoryarray": team_order,
-    }
-)
+        showlegend=False,
+        yaxis_title=None,
+        yaxis={
+            "categoryorder": "array",
+            "categoryarray": team_order,
+        }
+    )
     
     st.plotly_chart(fig_value, use_container_width=True)
 
@@ -201,8 +197,8 @@ with col2:
             "Decrease": "#6C757D",
         },
         labels={
-        "total_team_value_change": "Value Change ($m)",
-        "team_name": "Team",
+            "total_team_value_change": "Value Change ($m)",
+            "team_name": "Team",
         }
     )
 
@@ -212,7 +208,7 @@ with col2:
     )
     
     fig_growth.update_layout(
-    showlegend=False
+        showlegend=False
     )
 
     st.plotly_chart(fig_growth, use_container_width=True)
@@ -230,8 +226,8 @@ fig_points = px.bar(
     y="latest_completed_team_points",
     text="latest_completed_team_points",
     labels={
-    "latest_completed_team_points": "Points",
-    "team_name": "Team",
+        "latest_completed_team_points": "Points",
+        "team_name": "Team",
     }
 )
 

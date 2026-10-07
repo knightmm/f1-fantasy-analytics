@@ -32,7 +32,6 @@ def make_league_standings_snapshot_dataframe(df, raw_data, race_number):
             "race_rank",
             "race_points",
             "team_name",
-            "user_name",
             "trend",
             "user_team",
         ]
@@ -59,7 +58,6 @@ def cast_league_standings_dtypes(league_standings):
     string_cols = [
         "user_guid",
         "team_name",
-        "user_name"
     ]
     
     for col in int_cols:
@@ -90,7 +88,6 @@ def make_team_asset_snapshots_dataframe(league_standings_df):
             "user_guid",
             "team_no",
             "team_name",
-            "user_name",
             "asset_id",
         ]
     ]

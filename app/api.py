@@ -161,20 +161,18 @@ def get_asset_value_changes(
     - latest total team value change
     - latest completed race points
     - asset count
-    - team owner information
+    - team information
     - likely limitless chip usage detection
     """
 )
 def get_latest_league_team_values(
     team_name: str | None = None,
-    user_name: str | None = None,
 ):
     query = """
         SELECT
             team_snapshot_race_number,
             price_feed_race_number,
             team_name,
-            user_name,
             current_team_value,
             total_team_value_change,
             latest_completed_team_points,
@@ -189,10 +187,6 @@ def get_latest_league_team_values(
     if team_name:
         filters.append("LOWER(team_name) LIKE LOWER(?)")
         params.append(f"%{team_name}%")
-
-    if user_name:
-        filters.append("LOWER(user_name) LIKE LOWER(?)")
-        params.append(f"%{user_name}%")
 
     if filters:
         query += " WHERE " + " AND ".join(filters)
@@ -212,7 +206,7 @@ def get_latest_league_team_values(
     - one row per asset in each team's latest lineup
 
     Includes:
-    - team and user information
+    - team information
     - asset names and types
     - current asset values
     - latest value changes
@@ -221,7 +215,6 @@ def get_latest_league_team_values(
 )
 def get_latest_league_team_assets(
     team_name: str | None = None,
-    user_name: str | None = None,
 ):
     query = """
         SELECT
@@ -229,7 +222,6 @@ def get_latest_league_team_assets(
             price_feed_race_number,
             points_race_number,
             team_name,
-            user_name,
             asset_id,
             asset_type,
             display_name,
@@ -247,10 +239,6 @@ def get_latest_league_team_assets(
         filters.append("LOWER(team_name) LIKE LOWER(?)")
         params.append(f"%{team_name}%")
 
-    if user_name:
-        filters.append("LOWER(user_name) LIKE LOWER(?)")
-        params.append(f"%{user_name}%")
-
     if filters:
         query += " WHERE " + " AND ".join(filters)
 
@@ -262,6 +250,7 @@ def get_latest_league_team_assets(
     """
 
     return run_query(query, params)
+
 
 @app.get(
     "/league/team-season-summary",
@@ -280,14 +269,12 @@ def get_latest_league_team_assets(
 )
 def get_team_season_summary(
     team_name: str | None = None,
-    user_name: str | None = None,
 ):
     query = """
         SELECT
             season,
             latest_race_number,
             team_name,
-            user_name,
             cumulative_calculated_points,
             latest_team_value,
             latest_team_value_change,
@@ -302,10 +289,6 @@ def get_team_season_summary(
     if team_name:
         filters.append("LOWER(team_name) LIKE LOWER(?)")
         params.append(f"%{team_name}%")
-
-    if user_name:
-        filters.append("LOWER(user_name) LIKE LOWER(?)")
-        params.append(f"%{user_name}%")
 
     if filters:
         query += " WHERE " + " AND ".join(filters)
@@ -332,7 +315,6 @@ def get_team_season_summary(
 def get_team_values_by_race(
     race_number: int | None = None,
     team_name: str | None = None,
-    user_name: str | None = None,
 ):
     query = """
         SELECT
@@ -342,7 +324,6 @@ def get_team_values_by_race(
             r.race_date,
             r.sprint_weekend,
             tv.team_name,
-            tv.user_name,
             tv.team_value,
             tv.team_value_change,
             tv.calculated_asset_points,
@@ -363,10 +344,6 @@ def get_team_values_by_race(
     if team_name:
         filters.append("LOWER(team_name) LIKE LOWER(?)")
         params.append(f"%{team_name}%")
-
-    if user_name:
-        filters.append("LOWER(user_name) LIKE LOWER(?)")
-        params.append(f"%{user_name}%")
 
     if filters:
         query += " WHERE " + " AND ".join(filters)

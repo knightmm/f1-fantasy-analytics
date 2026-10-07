@@ -56,7 +56,7 @@ def main():
     standings = pd.read_csv(standings_path)
 
     league_members = standings[
-        ["user_guid", "team_no", "user_name"]
+        ["user_guid", "team_no"]
     ].drop_duplicates()
 
     # Temporary test: first two league members, race 1 only
@@ -67,7 +67,6 @@ def main():
         for _, member in league_members.iterrows():
             user_guid = member["user_guid"]
             team_no = int(member["team_no"])
-            user_name = member["user_name"]
 
             if detailed_team_raw_exists(
                 user_guid,
@@ -76,7 +75,7 @@ def main():
             ):
                 print(
                     f"Detailed raw team data already exists: "
-                    f"{user_name}, race {race_number}"
+                    f"team {team_no}, race {race_number}"
                 )
                 continue
 
@@ -95,7 +94,7 @@ def main():
 
             print(
                 f"Saved detailed raw team data: "
-                f"{user_name}, race {race_number}"
+                f"team {team_no}, race {race_number}"
             )
 
 

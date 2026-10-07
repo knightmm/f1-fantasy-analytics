@@ -66,7 +66,6 @@ st.caption(race_info)
 display_df = race_df[
     [
         "team_name",
-        "user_name",
         "team_value",
         "team_value_change",
         "calculated_asset_points",
@@ -75,7 +74,6 @@ display_df = race_df[
 ].rename(
     columns={
         "team_name": "Team",
-        "user_name": "Manager",
         "team_value": "Team Value ($m)",
         "team_value_change": "Value Change ($m)",
         "calculated_asset_points": "Race Points",
@@ -116,7 +114,6 @@ with col1:
         orientation="h",
         text="team_value",
         hover_data=[
-            "user_name",
             "team_value_change",
             "calculated_asset_points"
         ],
@@ -143,28 +140,27 @@ with col2:
     )
 
     fig_growth = px.bar(
-    growth_df,
-    x="team_value_change",
-    y="team_name",
-    orientation="h",
-    text="team_value_change",
-    labels={
-        "team_value_change": "Value Change ($m)",
-        "team_name": "Team",
-        }    
+        growth_df,
+        x="team_value_change",
+        y="team_name",
+        orientation="h",
+        text="team_value_change",
+        labels={
+            "team_value_change": "Value Change ($m)",
+            "team_name": "Team",
+        }
     )
 
     fig_growth.update_traces(
-    marker=dict(color=growth_df["bar_color"].tolist()),
-    textposition="inside",
-    texttemplate="%{text:.1f}"
-)
+        marker=dict(color=growth_df["bar_color"].tolist()),
+        textposition="inside",
+        texttemplate="%{text:.1f}"
+    )
 
     fig_growth.update_layout(
         showlegend=False,
         yaxis_title=None
     )
-
 
     st.plotly_chart(fig_growth, use_container_width=True)
 
