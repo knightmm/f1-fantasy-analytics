@@ -26,3 +26,21 @@ def make_team_chip_usage_dataframe(team, user_guid):
             })
 
     return pd.DataFrame(records)
+
+def make_detailed_team_assets_dataframe(team, user_guid, race_number):
+    records = []
+
+    for player in team["playerid"]:
+        records.append({
+            "season": 2026,
+            "race_number": race_number,
+            "user_guid": user_guid,
+            "team_no": team["teamno"],
+            "asset_id": player["id"],
+            "is_captain": player["iscaptain"],
+            "is_mg_captain": player["ismgcaptain"],
+            "player_position": player["playerpostion"],
+            "is_final": player["isfinal"],
+        })
+
+    return pd.DataFrame(records)
