@@ -1,0 +1,7 @@
+chip_id,chip_key,api_name,display_name,available_first_race
+1,limitless,limitless,Limitless,2
+2,wildcard,wildcard,Wildcard,2
+3,final_fix,finalfix,Final Fix,2
+4,autopilot,autopilot,Auto Pilot,1
+5,no_negative,nonigative,No Negative,1
+6,x3_boost,extradrs,x3 Boost,1
