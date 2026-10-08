@@ -4,6 +4,7 @@ import pandas as pd
 import os
 
 from src.utils.database import load_csvs_to_table
+from src.validate_database import validate_database
 
 
 def main():
@@ -60,8 +61,8 @@ def main():
         chips_df = pd.read_csv(chips_filepath)
         chips_df.to_sql("chips", con, if_exists="replace", index=False)
 
-        print("Database load complete.")
-
+        validate_database(con)
+        print("Database load and validation complete.")
 
 if __name__ == "__main__":
     main()
