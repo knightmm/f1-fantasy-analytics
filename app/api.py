@@ -15,6 +15,9 @@ def run_query(query, params=None):
     with sqlite3.connect(DB_PATH) as con:
         df = pd.read_sql_query(query, con, params=params)
 
+    # Return missing values as JSON null.
+    df = df.astype(object).where(pd.notna(df), None)
+
     return df.to_dict(orient="records")
 
 
@@ -299,55 +302,70 @@ def get_team_season_summary(
 
 
 @app.get(
-    "/league/team-values/by-race",
-    summary="Get team values by race",
-    description="""
-    Returns team value and calculated asset points for each team by race.
-
-    Grain:
-    - one row per team per race
-
-    Notes:
-    - points are calculated from asset points, not official league standings
-    - Limitless usage is estimated from unusually high team value
-    """
+    "/teams/by-race",
+    summary="Get team performance and finances by race",
+    description=(
+        "Returns one row per team per race, with official points, "
+        "cumulative points, financial values and league averages."
+    ),
 )
-def get_team_values_by_race(
+def get_teams_by_race(
+    season: int | None = None,
     race_number: int | None = None,
     team_name: str | None = None,
 ):
     query = """
         SELECT
-            tv.season,
-            tv.race_number,
-            r.race_name,
+            t.season,
+            t.race_number,
+            t.race_name,
             r.race_date,
             r.sprint_weekend,
-            tv.team_name,
-            tv.team_value,
-            tv.team_value_change,
-            tv.calculated_asset_points,
-            tv.likely_limitless_team
-        FROM mart_team_values_by_race AS tv
+            t.user_guid,
+            t.team_no,
+            t.team_name,
+            t.race_points,
+            t.race_rank,
+            t.cumulative_points,
+            t.league_average_race_points,
+            t.league_average_cumulative_points,
+            t.asset_value,
+            t.remaining_budget,
+            t.total_wealth,
+            t.wealth_change,
+            t.league_average_total_wealth,
+            t.valuation_source
+        FROM mart_team_race AS t
         LEFT JOIN races AS r
-            ON tv.season = r.season
-            AND tv.race_number = r.race_number
+            ON t.season = r.season
+           AND t.race_number = r.race_number
     """
 
     params = []
     filters = []
 
-    if race_number:
-        filters.append("tv.race_number = ?")
+    if season is not None:
+        filters.append("t.season = ?")
+        params.append(season)
+
+    if race_number is not None:
+        filters.append("t.race_number = ?")
         params.append(race_number)
 
     if team_name:
-        filters.append("LOWER(team_name) LIKE LOWER(?)")
+        filters.append("LOWER(t.team_name) LIKE LOWER(?)")
         params.append(f"%{team_name}%")
 
     if filters:
         query += " WHERE " + " AND ".join(filters)
 
-    query += " ORDER BY tv.race_number DESC, tv.calculated_asset_points DESC"
+    query += """
+        ORDER BY
+            t.season,
+            t.race_number,
+            t.cumulative_points DESC,
+            t.user_guid,
+            t.team_no
+    """
 
     return run_query(query, params)
