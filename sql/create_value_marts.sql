@@ -257,3 +257,144 @@ FROM team_season_totals tst
 LEFT JOIN latest_team_values ltv
     ON tst.season = ltv.season
     AND tst.team_name = ltv.team_name;
+
+-- Team performance and finances by race
+DROP TABLE IF EXISTS mart_team_race;
+
+CREATE TABLE mart_team_race AS
+WITH roster_values AS (
+    SELECT
+        s.season,
+        s.race_number,
+        s.user_guid,
+        s.team_no,
+
+        -- Only calculate a value for a complete seven-asset roster.
+        CASE
+            WHEN COUNT(*) = 7 AND COUNT(a.value) = 7
+                THEN ROUND(SUM(a.value), 1)
+            ELSE NULL
+        END AS calculated_asset_value
+
+    FROM team_race_asset AS s
+    LEFT JOIN asset_race AS a
+        ON a.season = s.season
+       AND a.race_number = s.race_number
+       AND a.asset_id = s.asset_id
+
+    -- Keep the original roster for Final Fix financial valuation.
+    WHERE s.is_final != 1
+
+      -- Limitless roster cost is not a valid wealth fallback.
+      AND NOT EXISTS (
+          SELECT 1
+          FROM team_chip_usage AS u
+          WHERE u.season = s.season
+            AND u.user_guid = s.user_guid
+            AND u.team_no = s.team_no
+            AND u.race_used = s.race_number
+            AND u.chip_id = 1
+      )
+
+    GROUP BY
+        s.season,
+        s.race_number,
+        s.user_guid,
+        s.team_no
+),
+
+team_metrics AS (
+    SELECT
+        t.season,
+        t.race_number,
+        r.race_name,
+        t.user_guid,
+        t.team_no,
+        t.team_name,
+
+        -- Official performance
+        t.race_points,
+        t.race_rank,
+
+        SUM(t.race_points) OVER (
+            PARTITION BY t.season, t.user_guid, t.team_no
+            ORDER BY t.race_number
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS cumulative_points,
+
+        ROUND(
+            AVG(t.race_points) OVER (
+                PARTITION BY t.season, t.race_number
+            ),
+            2
+        ) AS league_average_race_points,
+
+        -- Preserve the source values for comparison.
+        t.recorded_asset_value,
+        t.remaining_budget,
+        t.recorded_total_budget,
+        v.calculated_asset_value,
+
+        -- Prefer recorded values; use calculations when missing.
+        COALESCE(
+            t.recorded_asset_value,
+            v.calculated_asset_value
+        ) AS asset_value,
+
+        ROUND(
+            COALESCE(
+                t.recorded_total_budget,
+                COALESCE(
+                    t.recorded_asset_value,
+                    v.calculated_asset_value
+                ) + t.remaining_budget
+            ),
+            1
+        ) AS total_wealth,
+
+        CASE
+            WHEN t.recorded_asset_value IS NOT NULL THEN 'recorded'
+            WHEN v.calculated_asset_value IS NOT NULL THEN 'calculated'
+            ELSE 'unavailable'
+        END AS valuation_source
+
+    FROM team_race AS t
+    JOIN races AS r
+        ON t.season = r.season
+       AND t.race_number = r.race_number
+
+    LEFT JOIN roster_values AS v
+        ON t.season = v.season
+       AND t.race_number = v.race_number
+       AND t.user_guid = v.user_guid
+       AND t.team_no = v.team_no
+)
+
+SELECT
+    m.*,
+
+    -- Change from this team's previous available race snapshot.
+    ROUND(
+        m.total_wealth - LAG(m.total_wealth) OVER (
+            PARTITION BY m.season, m.user_guid, m.team_no
+            ORDER BY m.race_number
+        ),
+        1
+    ) AS wealth_change,
+
+    -- League averages at each race.
+    ROUND(
+        AVG(m.cumulative_points) OVER (
+            PARTITION BY m.season, m.race_number
+        ),
+        2
+    ) AS league_average_cumulative_points,
+
+    ROUND(
+        AVG(m.total_wealth) OVER (
+            PARTITION BY m.season, m.race_number
+        ),
+        1
+    ) AS league_average_total_wealth
+
+FROM team_metrics AS m;
