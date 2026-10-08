@@ -1,3 +1,4 @@
+
 -- Asset Value Changes by Race
 DROP TABLE IF EXISTS mart_asset_value_changes_by_race;
 
@@ -16,7 +17,7 @@ SELECT
     selected_percentage,
     retrieved_at_utc,
     feed_time_utc
-FROM asset_race_snapshots;
+FROM asset_race;
 
 
 -- Latest Asset Points and Values
@@ -31,7 +32,7 @@ WITH latest_completed AS (
 
 latest_price_feed AS (
     SELECT MAX(race_number) AS race_number
-    FROM asset_race_snapshots
+    FROM asset_race
 ),
 
 latest_points AS (
@@ -43,7 +44,7 @@ latest_points AS (
         a.overall_points,
         a.gameday_points,
         a.selected_percentage
-    FROM asset_race_snapshots a
+    FROM asset_race a
     JOIN latest_completed lc
         ON a.race_number = lc.race_number
 ),
@@ -60,7 +61,7 @@ latest_prices AS (
         ROUND(a.value - a.old_asset_value, 1) AS latest_value_change,
         a.retrieved_at_utc,
         a.feed_time_utc
-    FROM asset_race_snapshots a
+    FROM asset_race a
     JOIN latest_price_feed lpf
         ON a.race_number = lpf.race_number
 )
@@ -92,7 +93,7 @@ DROP TABLE IF EXISTS mart_team_assets_latest;
 CREATE TABLE mart_team_assets_latest AS
 WITH latest_race AS (
     SELECT MAX(race_number) AS race_number
-    FROM team_asset_snapshots
+    FROM team_race_asset
 )
 
 SELECT
@@ -111,12 +112,12 @@ SELECT
     mal.points_race_number,
     mal.price_feed_race_number
 
-FROM team_asset_snapshots tas
+FROM team_race_asset tas
 
 JOIN latest_race lr
     ON tas.race_number = lr.race_number
 
-LEFT JOIN league_standings_snapshots lss
+LEFT JOIN team_race lss
     ON tas.season = lss.season
    AND tas.race_number = lss.race_number
    AND tas.user_guid = lss.user_guid
@@ -180,7 +181,7 @@ WITH team_asset_performance AS (
         avr.value,
         avr.value_change,
         avr.gameday_points
-    FROM team_asset_snapshots tas
+    FROM team_race_asset tas
     LEFT JOIN mart_asset_value_changes_by_race avr
         ON tas.season = avr.season
         AND tas.race_number = avr.race_number
