@@ -46,6 +46,7 @@ def main():
             if_exists="replace",
             index=False,
         )
+        print(f"Loaded team_chip_usage table: {len(chip_usage_df)} rows")
 
         # Load race reference data
         races_filepath = os.path.join("data", "reference", "races_2026.csv")
@@ -54,12 +55,14 @@ def main():
         races_df["race_date"] = pd.to_datetime(races_df["race_date"], utc=True)
 
         races_df.to_sql("races", con, if_exists="replace", index=False)
+        print(f"Loaded races table: {len(races_df)} rows")
 
         # Load chip reference data
         chips_filepath = os.path.join("data", "reference", "chips_2026.csv")
 
         chips_df = pd.read_csv(chips_filepath)
         chips_df.to_sql("chips", con, if_exists="replace", index=False)
+        print(f"Loaded chips table: {len(chips_df)} rows")
 
         validate_database(con)
         print("Database load and validation complete.")

@@ -49,7 +49,7 @@ def main():
     latest_race = max(completed_races)
 
     standings_path = get_processed_file_path(
-        "league_standings_snapshot",
+        "team_race",
         latest_race
     )
 

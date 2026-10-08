@@ -49,4 +49,4 @@ def load_csvs_to_table(
         index=False,
     )
 
-    print(f"Loaded {table_name} table")
+    print(f"Loaded {table_name} table: {len(combined_df)} rows")

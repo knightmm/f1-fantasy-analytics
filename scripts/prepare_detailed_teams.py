@@ -66,7 +66,7 @@ def main():
     )
 
     team_chip_usage.to_csv(output_path, index=False)
-    print(f"Saved {output_path}")
+    print(f"Prepared chip usage data: {len(team_chip_usage)} records")
 
     # 2. Detailed team asset data
 

@@ -1,5 +1,7 @@
 from scripts.fetch_assets import main as fetch_assets
-from scripts.fetch_teams import main as fetch_league_results
+from scripts.prepare_assets import main as prepare_assets
+from scripts.fetch_teams import main as fetch_teams
+from scripts.prepare_teams import main as prepare_teams
 from scripts.fetch_detailed_teams import main as fetch_detailed_teams
 from scripts.prepare_detailed_teams import main as prepare_detailed_teams
 from scripts.load_to_database import main as load_to_database
@@ -12,19 +14,25 @@ def run_pipeline():
     print("1. Fetching public asset data...")
     fetch_assets()
 
-    print("2. Fetching public team data...")
-    fetch_league_results()
+    print("2. Preparing asset data...")
+    prepare_assets()
 
-    print("3. Fetching detailed team data...")
+    print("3. Fetching public team data...")
+    fetch_teams()
+
+    print("4. Preparing team data...")
+    prepare_teams()
+
+    print("5. Fetching detailed team data...")
     fetch_detailed_teams()
 
-    print("4. Preparing detailed team data...")
+    print("6. Preparing detailed team data...")
     prepare_detailed_teams()
 
-    print("5. Loading data to database...")
+    print("7. Loading and validating database...")
     load_to_database()
 
-    print("6. Creating marts...")
+    print("8. Creating marts...")
     build_marts()
 
     print("Pipeline complete.")
