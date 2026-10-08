@@ -398,3 +398,71 @@ SELECT
     ) AS league_average_total_wealth
 
 FROM team_metrics AS m;
+
+-- Chip usage and availability by team
+DROP TABLE IF EXISTS mart_team_chips;
+
+CREATE TABLE mart_team_chips AS
+WITH team_latest AS (
+    -- Latest available race for each team
+    SELECT
+        season,
+        user_guid,
+        team_no,
+        MAX(race_number) AS last_observed_race
+    FROM team_race
+    GROUP BY season, user_guid, team_no
+)
+
+SELECT
+    l.season,
+    l.user_guid,
+    l.team_no,
+    t.team_name,
+    l.last_observed_race,
+    c.chip_id,
+    c.display_name AS chip_name,
+    c.available_first_race,
+    u.race_used,
+
+    -- Status as of the team's latest snapshot
+    CASE
+        WHEN u.race_used IS NULL THEN 'unused'
+        WHEN u.race_used > l.last_observed_race THEN 'upcoming'
+        ELSE 'used'
+    END AS chip_status,
+
+    r.race_name AS race_used_name,
+    p.race_points AS chip_race_points,
+    p.league_average_race_points
+
+FROM team_latest AS l
+
+-- Latest team name
+JOIN team_race AS t
+    ON t.season = l.season
+   AND t.user_guid = l.user_guid
+   AND t.team_no = l.team_no
+   AND t.race_number = l.last_observed_race
+
+-- One row per team/chip, including unused chips
+CROSS JOIN chips AS c
+
+-- Recorded chip usage
+LEFT JOIN team_chip_usage AS u
+    ON u.season = l.season
+   AND u.user_guid = l.user_guid
+   AND u.team_no = l.team_no
+   AND u.chip_id = c.chip_id
+
+-- Race details
+LEFT JOIN races AS r
+    ON r.season = l.season
+   AND r.race_number = u.race_used
+
+-- Team score and league average in the chip race
+LEFT JOIN mart_team_race AS p
+    ON p.season = l.season
+   AND p.user_guid = l.user_guid
+   AND p.team_no = l.team_no
+   AND p.race_number = u.race_used;

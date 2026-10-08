@@ -18,14 +18,25 @@ def main():
     completed_races = get_completed_race_numbers()
     latest_race = max(completed_races)
 
-    # 1. Chip usage for teams in the latest standings
-    team_race = pd.read_csv(
-        get_processed_file_path("team_race", latest_race)
-    )
+    # 1. Chip usage from each team's latest available race
+    team_snapshots = []
 
-    teams = team_race[
-        ["user_guid", "team_no"]
-    ].drop_duplicates()
+    for race_number in completed_races:
+        race_teams = pd.read_csv(
+            get_processed_file_path("team_race", race_number)
+        )[["user_guid", "team_no"]].drop_duplicates()
+
+        race_teams["race_number"] = race_number
+        team_snapshots.append(race_teams)
+
+    teams = (
+        pd.concat(team_snapshots, ignore_index=True)
+        .sort_values("race_number")
+        .drop_duplicates(
+            subset=["user_guid", "team_no"],
+            keep="last",
+        )
+    )
 
     chip_usage_dfs = []
 
@@ -36,7 +47,7 @@ def main():
         detailed_team_raw = load_detailed_team_raw(
             user_guid,
             team_no,
-            latest_race,
+            int(fantasy_team["race_number"]),
         )
 
         team = detailed_team_raw["Data"]["Value"]["userTeam"][0]
