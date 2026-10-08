@@ -1,46 +1,38 @@
 import requests
+
 from src.utils.races import get_completed_race_numbers
-from src.utils.paths import (
-    raw_file_exists,
-    load_raw_json,
-    save_raw_json,
-    save_processed_csv,
-)
-from src.transform_assets import (
-    make_assets_dataframe,
-    rename_asset_columns,
-    cast_asset_dtypes,
-)
+from src.utils.paths import raw_file_exists, save_raw_json
 
 
 def fetch_assets(race_number):
     url = f"https://fantasy.formula1.com/feeds/drivers/{race_number}_en.json"
-    r = requests.get(url)
-    r.raise_for_status()
-    return r.json()
+    response = requests.get(url, timeout=30)
+    response.raise_for_status()
+    return response.json()
 
 
 def main():
     completed_races = get_completed_race_numbers()
 
-    # Fetch completed races + next price feed
+    # Completed races plus the next race's price feed
     asset_races = range(1, max(completed_races) + 2)
+
+    fetched = 0
+    skipped = 0
 
     for race_number in asset_races:
         if raw_file_exists("asset_snapshot", race_number):
-            data = load_raw_json("asset_snapshot", race_number)
-            print(f"Loaded existing asset Race {race_number} JSON")
-        else:
-            data = fetch_assets(race_number)
-            save_raw_json(data, "asset_snapshot", race_number)
-            print(f"Saved raw asset JSON for race {race_number}")
+            skipped += 1
+            continue
 
-        df = make_assets_dataframe(data, race_number)
-        df = rename_asset_columns(df)
-        df = cast_asset_dtypes(df)
+        data = fetch_assets(race_number)
+        save_raw_json(data, "asset_snapshot", race_number)
+        fetched += 1
 
-        save_processed_csv(df, "asset_race", race_number)
-        print(f"Saved asset CSV for race {race_number}")
+    print(
+        f"Asset fetch complete: {len(asset_races)} races checked, "
+        f"{fetched} fetched, {skipped} already saved."
+    )
 
 
 if __name__ == "__main__":
