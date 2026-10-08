@@ -63,39 +63,34 @@ def main():
     #test_members = league_members.head(2)
     #test_races = [1]
 
+    fetched = 0
+    skipped = 0
+
     for race_number in completed_races:
         for _, member in league_members.iterrows():
             user_guid = member["user_guid"]
             team_no = int(member["team_no"])
 
             if detailed_team_raw_exists(
-                user_guid,
-                team_no,
-                race_number
+                user_guid, team_no, race_number
             ):
-                print(
-                    f"Detailed raw team data already exists: "
-                    f"team {team_no}, race {race_number}"
-                )
+                skipped += 1
                 continue
 
             raw_data = fetch_detailed_team(
-                user_guid,
-                team_no,
-                race_number
+                user_guid, team_no, race_number
             )
 
             save_detailed_team_raw(
-                raw_data,
-                user_guid,
-                team_no,
-                race_number
+                raw_data, user_guid, team_no, race_number
             )
+            fetched += 1
 
-            print(
-                f"Saved detailed raw team data: "
-                f"team {team_no}, race {race_number}"
-            )
+    print(
+        f"Detailed team fetch complete: "
+        f"{len(league_members)} teams across {len(completed_races)} races, "
+        f"{fetched} fetched, {skipped} already saved."
+    )
 
 
 if __name__ == "__main__":

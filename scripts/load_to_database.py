@@ -65,7 +65,6 @@ def main():
         print(f"Loaded chips table: {len(chips_df)} rows")
 
         validate_database(con)
-        print("Database load and validation complete.")
 
 if __name__ == "__main__":
     main()
