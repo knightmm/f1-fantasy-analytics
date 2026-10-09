@@ -6,245 +6,319 @@ import plotly.express as px
 
 st.title("🏁 F1 Fantasy Dashboard")
 
-# Latest team values
-response = requests.get(f"{API_URL}/league/team-values/latest")
+st.write(
+    "This dashboard makes it easier to compare performance and finances across your F1 Fantasy league. It brings standings, team wealth and remaining cash into one view, helping you see how your team compares with its rivals."
+)
+
+# Latest team performance and finances
+response = requests.get(
+    f"{API_URL}/teams/latest",
+    params={"season": 2026},
+    timeout=30,
+)
+response.raise_for_status()
+
 df = pd.DataFrame(response.json())
 
-df["last_race_rank"] = (
-    df["latest_completed_team_points"]
+if df.empty:
+    st.info("No team data is available for this season.")
+    st.stop()
+
+# Rank teams by official points in the latest race
+df["league_race_rank"] = (
+    df["race_points"]
     .rank(method="min", ascending=False)
     .astype(int)
 )
 
-# Season standings
-response = requests.get(f"{API_URL}/league/team-season-summary")
-season_df = pd.DataFrame(response.json())
+# Identify the snapshot displayed on this page
+latest_race = df.iloc[0]
 
-season_df["overall_rank"] = (
-    season_df["cumulative_calculated_points"]
-    .rank(method="min", ascending=False)
-    .astype(int)
+st.caption(
+    f"Latest race: Race {latest_race['race_number']} "
+    f"— {latest_race['race_name']}"
 )
 
 DEFAULT_TEAM = "In Search of Lost Sainz"
 
 team_options = sorted(df["team_name"].tolist())
-default_index = team_options.index(DEFAULT_TEAM)
+
+default_index = (
+    team_options.index(DEFAULT_TEAM)
+    if DEFAULT_TEAM in team_options
+    else 0
+)
 
 selected_team = st.selectbox(
     "Select team",
     team_options,
-    index=default_index
+    index=default_index,
 )
 
 my_row = df[df["team_name"] == selected_team].iloc[0]
-my_season_row = season_df[season_df["team_name"] == selected_team].iloc[0]
 
-# Display Metrics
+# Performance metrics
 st.subheader(f"{selected_team} Overview")
 
 col1, col2, col3, col4 = st.columns(4)
 
-col1.metric(
-    "Overall Rank",
-    int(my_season_row["overall_rank"])
-)
-
-col2.metric(
-    "Last Race Rank",
-    int(my_row["last_race_rank"])
-)
-
-col3.metric(
-    "Last Race Points",
-    int(my_row["latest_completed_team_points"])
-)
-
-col4.metric(
-    "Team Value",
-    f"${my_row['current_team_value']:.1f}m",
-    f"{my_row['total_team_value_change']:+.1f}m"
-)
-
-# Season Display Dataframe Config
-season_display_df = season_df[
-    [
-        "team_name",
-        "cumulative_calculated_points",
-        "latest_team_value",
-        "latest_team_value_change",
-        "latest_calculated_asset_points",
-        "has_used_limitless",
-    ]
-].rename(
-    columns={
-        "team_name": "Team",
-        "cumulative_calculated_points": "Total Points",
-        "latest_team_value": "Team Value",
-        "latest_team_value_change": "Value Change",
-        "latest_calculated_asset_points": "Latest Race Points",
-        "has_used_limitless": "Limitless Used",
-    }
-)
-
-season_display_df.index = season_display_df.index + 1
-
-# Limitless Checkbox
-exclude_limitless = st.checkbox(
-    "Exclude likely limitless teams",
-    value=True
-)
-
-if exclude_limitless:
-    chart_df = df[df["likely_limitless_team"] == 0]
-else:
-    chart_df = df
-
-# Display Dataframe Config
-display_df = df[
-    [
-        "team_name",
-        "latest_completed_team_points",
-        "total_team_value_change",
-        "current_team_value",
-        "likely_limitless_team",
-    ]
-].rename(
-    columns={
-        "team_name": "Team",
-        "latest_completed_team_points": "Last Race Points",
-        "total_team_value_change": "Value Change",
-        "current_team_value": "Team Value",
-        "likely_limitless_team": "Limitless Chip",
-    }
-)
-
-display_df.index = display_df.index + 1
-
-# Value Charts
-col1, col2 = st.columns(2)
-
 with col1:
-    st.subheader("Team Value Leaderboard")
-    st.caption("Going into the next race")
-
-    team_value_df = chart_df.sort_values(
-        "current_team_value",
-        ascending=True
-    )
-    
-    # To highlight the team that is selected in the dropdown
-    team_value_df["selected_status"] = team_value_df["team_name"].apply(
-        lambda x: "Selected Team" if x == selected_team else "Other Teams"
-    )
-    team_order = team_value_df["team_name"].tolist()
-
-    fig_value = px.bar(
-        team_value_df,
-        x="current_team_value",
-        y="team_name",
-        orientation="h",
-        text="current_team_value",
-        color="selected_status",
-        color_discrete_map={
-            "Selected Team": "#FFBE0B",
-            "Other Teams": "#8ECAE6",
-        },
-        labels={
-            "current_team_value": "Team Value ($m)",
-            "team_name": "Team",
-        }
-    )
-
-    fig_value.update_traces(
-        textposition="inside",
-        texttemplate="%{text:.1f}"
-    )
-    
-    fig_value.update_layout(
-        showlegend=False,
-        yaxis_title=None,
-        yaxis={
-            "categoryorder": "array",
-            "categoryarray": team_order,
-        }
-    )
-    
-    st.plotly_chart(fig_value, use_container_width=True)
+    with st.container(border=True):
+        st.metric(
+            "Season league rank",
+            int(my_row["league_rank"]),
+        )
 
 with col2:
-    st.subheader("Team Value Growth")
-    st.caption("Going into the next race")
+    with st.container(border=True):
+        st.metric(
+            "Season points",
+            int(my_row["cumulative_points"]),
+        )
 
-    growth_df = chart_df.sort_values(
-        "total_team_value_change",
-        ascending=True
-    ).copy()
+with col3:
+    with st.container(border=True):
+        st.metric(
+            "Latest race rank",
+            int(my_row["league_race_rank"]),
+        )
 
-    growth_df["growth_direction"] = growth_df["total_team_value_change"].apply(
-        lambda x: "Increase" if x >= 0 else "Decrease"
-    )
+with col4:
+    with st.container(border=True):
+        st.metric(
+            "Latest race points",
+            int(my_row["race_points"]),
+        )
 
-    fig_growth = px.bar(
-        growth_df,
-        x="total_team_value_change",
-        y="team_name",
-        orientation="h",
-        text="total_team_value_change",
-        color="growth_direction",
-        color_discrete_map={
-            "Increase": "#8ECAE6",
-            "Decrease": "#6C757D",
-        },
-        labels={
-            "total_team_value_change": "Value Change ($m)",
+
+# Financial metrics
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    with st.container(border=True):
+        st.metric(
+            "Total value",
+            f"${my_row['total_wealth']:.1f}m"
+            if pd.notna(my_row["total_wealth"])
+            else "Unavailable",
+            delta=(
+                f"{my_row['wealth_change']:+.1f}m"
+                if pd.notna(my_row["wealth_change"])
+                else None
+            ),
+        )
+
+with col2:
+    with st.container(border=True):
+        st.metric(
+            "Asset value",
+            f"${my_row['asset_value']:.1f}m"
+            if pd.notna(my_row["asset_value"])
+            else "Unavailable",
+        )
+
+with col3:
+    with st.container(border=True):
+        st.metric(
+            "Remaining cash",
+            f"${my_row['remaining_budget']:.1f}m"
+            if pd.notna(my_row["remaining_budget"])
+            else "Unavailable",
+        )
+
+# All teams present in the latest race snapshot
+chart_df = df.copy()
+
+# One league snapshot combining standings and finances
+display_df = (
+    df.sort_values("league_rank")[
+        [
+            "league_rank",
+            "team_name",
+            "cumulative_points",
+            "total_wealth",
+            "wealth_change",          
+            "asset_value",
+            "remaining_budget",
+            "race_points",
+            "league_race_rank"
+        ]
+    ]
+    .rename(
+        columns={
+            "league_rank": "Rank",
             "team_name": "Team",
+            "cumulative_points": "Season points",
+            "race_points": "Latest race points",
+            "league_race_rank": "Latest race rank",
+            "asset_value": "Asset value ($m)",
+            "remaining_budget": "Cash ($m)",
+            "total_wealth": "Total value ($m)",
+            "wealth_change": "Value change ($m)",
         }
     )
-
-    fig_growth.update_traces(
-        textposition="inside",
-        texttemplate="%{text:.1f}"
-    )
-    
-    fig_growth.update_layout(
-        showlegend=False
-    )
-
-    st.plotly_chart(fig_growth, use_container_width=True)
-
-st.subheader("Last Race Points")
-
-points_df = chart_df.sort_values(
-    "latest_completed_team_points",
-    ascending=False
 )
 
-fig_points = px.bar(
-    points_df,
-    x="team_name",
-    y="latest_completed_team_points",
-    text="latest_completed_team_points",
+
+# Stacked asset value and remaining cash
+st.subheader("Team Finances")
+st.caption("Asset value and remaining cash, ranked by total value")
+
+finance_df = (
+    chart_df
+    .dropna(subset=["asset_value", "remaining_budget", "total_wealth"])
+    .sort_values("total_wealth", ascending=True)
+    .copy()
+)
+
+# Convert the two financial columns into rows for stacked bars
+plot_df = finance_df.melt(
+    id_vars=["team_name", "total_wealth", "wealth_change"],
+    value_vars=["asset_value", "remaining_budget"],
+    var_name="component",
+    value_name="value",
+)
+
+# Highlight the selected team's asset portion
+plot_df["segment"] = plot_df.apply(
+    lambda row: (
+        "Cash"
+        if row["component"] == "remaining_budget"
+        else (
+            "Selected team's assets"
+            if row["team_name"] == selected_team
+            else "Assets"
+        )
+    ),
+    axis=1,
+)
+
+fig = px.bar(
+    plot_df,
+    x="value",
+    y="team_name",
+    color="segment",
+    orientation="h",
+    barmode="stack",
+    category_orders={
+        "team_name": finance_df["team_name"].tolist(),
+        "segment": ["Assets", "Selected team's assets", "Cash"],
+    },
+    color_discrete_map={
+        "Assets": "#64B6AC",
+        "Cash": "#9B8AC4",
+        "Selected team's assets": "#E9B44C",
+    },
+    custom_data=["total_wealth", "wealth_change"],
     labels={
-        "latest_completed_team_points": "Points",
+        "value": "Value ($m)",
         "team_name": "Team",
-    }
+        "segment": "Component",
+    },
 )
 
-fig_points.update_traces(
-    textposition="inside",
-    texttemplate="%{text:.0f}"
+# Set legend order independently of the bar stacking order
+legend_order = {
+    "Assets": 0,
+    "Cash": 1,
+    "Selected team's assets": 2,
+}
+
+for trace in fig.data:
+    trace.legendrank = legend_order[trace.name]
+
+    if trace.name == "Selected team's assets":
+        trace.name = "Selected team"
+
+fig.update_layout(
+    height=max(350, 30 * len(finance_df) + 100),
+    margin=dict(l=0, r=20, t=35, b=10),
+    yaxis_title=None,
+    legend_title_text="",
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.04,
+        xanchor="left",
+        x=0,
+        traceorder="normal",
+    ),
+    bargap=0.4,
+    font=dict(size=12),
 )
 
-st.plotly_chart(fig_points, use_container_width=True)
+fig.update_xaxes(
+    title_text="Value ($m)",
+    rangemode="tozero",
+    ticksuffix="m",
+    showgrid=True,
+    gridcolor="rgba(128, 128, 128, 0.15)",
+    zeroline=False,
+    showline=False,
+)
+
+fig.update_yaxes(
+    categoryorder="array",
+    categoryarray=finance_df["team_name"].tolist(),
+    showgrid=False,
+    ticks="",
+    showline=False,
+)
+
+st.plotly_chart(fig, use_container_width=True)
 
 
-# Display Latest Race Dataframe
-st.subheader("Last Race Results")
-st.dataframe(display_df)
+# League Dataframe
+st.subheader("Latest League Snapshot")
 
-# Display Season Overall Dataframe
-st.subheader("Season Overall")
-st.dataframe(season_display_df)
+def highlight_selected_team(row):
+    if row["Team"] == selected_team:
+        return [
+            "background-color: rgba(233, 180, 76, 0.18)"
+        ] * len(row)
+
+    return [""] * len(row)
+
+styled_df = (
+    display_df.style
+    .apply(highlight_selected_team, axis=1)
+    .format(
+        {
+            "Rank": "{:.0f}",
+            "Season points": "{:.0f}",
+            "Latest race points": "{:.0f}",
+            "Latest race rank": "{:.0f}",
+            "Asset value ($m)": "{:.1f}",
+            "Cash ($m)": "{:.1f}",
+            "Total value ($m)": "{:.1f}",
+            "Value change ($m)": "{:.1f}",
+        },
+        na_rep="—",
+    )
+)
+
+st.dataframe(
+    styled_df,
+    hide_index=True,
+    height=35 * (min(len(display_df), 20) + 1) + 3,
+    use_container_width=True,
+    column_config={
+        column: st.column_config.NumberColumn(
+            column,
+            format="%.1f",
+        )
+        for column in [
+            "Asset value ($m)",
+            "Cash ($m)",
+            "Total wealth ($m)",
+            "Wealth change ($m)",
+        ]
+    },
+)
+
+st.caption(
+    "Financial values use recorded valuations where available, "
+    "with calculated fallbacks for missing values. "
+    )
 
 
