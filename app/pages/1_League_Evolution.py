@@ -126,10 +126,10 @@ display_df = (
             "race_points",
             "race_rank",
             "cumulative_points",
-            "asset_value",
-            "remaining_budget",
             "total_wealth",
             "wealth_change",
+            "asset_value",
+            "remaining_budget",
         ]
     ]
     .rename(
@@ -137,11 +137,11 @@ display_df = (
             "team_name": "Team",
             "race_points": "Race points",
             "race_rank": "Race rank",
-            "cumulative_points": "Cumulative points",
+            "cumulative_points": "Season points",
             "asset_value": "Asset value ($m)",
             "remaining_budget": "Cash ($m)",
-            "total_wealth": "Total wealth ($m)",
-            "wealth_change": "Wealth change ($m)",
+            "total_wealth": "Total value ($m)",
+            "wealth_change": "Value change ($m)",
         }
     )
 )

@@ -7,7 +7,7 @@ import plotly.express as px
 st.title("🏁 F1 Fantasy Dashboard")
 
 st.write(
-    "This dashboard makes it easier to compare performance and finances across your F1 Fantasy league. It brings standings, team wealth and remaining cash into one view, helping you see how your team compares with its rivals."
+    "This dashboard makes it easier to compare performance and finances across your F1 Fantasy league. It brings standings, team wealth and remaining cash into one view, helping you see how your team compares with your league rivals."
 )
 
 # Latest team performance and finances
@@ -310,8 +310,8 @@ st.dataframe(
         for column in [
             "Asset value ($m)",
             "Cash ($m)",
-            "Total wealth ($m)",
-            "Wealth change ($m)",
+            "Total value ($m)",
+            "Value change ($m)",
         ]
     },
 )

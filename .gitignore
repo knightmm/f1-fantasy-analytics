@@ -13,4 +13,6 @@ data/processed/
 
 notebooks/private/
 
+app/retired_pages/
+
 *.db
