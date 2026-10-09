@@ -422,6 +422,7 @@ SELECT
     l.last_observed_race,
     c.chip_id,
     c.display_name AS chip_name,
+    c.chip_short_name,
     c.available_first_race,
     u.race_used,
 
@@ -433,6 +434,7 @@ SELECT
     END AS chip_status,
 
     r.race_name AS race_used_name,
+    r.race_short_name AS race_used_short_name,
     p.race_points AS chip_race_points,
     p.league_average_race_points
 

@@ -478,9 +478,11 @@ def get_team_chips(
             last_observed_race,
             chip_id,
             chip_name,
+            chip_short_name,
             available_first_race,
             race_used,
             race_used_name,
+            race_used_short_name,
             chip_status,
             chip_race_points,
             league_average_race_points
