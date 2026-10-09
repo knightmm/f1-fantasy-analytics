@@ -1,8 +1,9 @@
 import streamlit as st
-from config import API_URL
+from config import API_URL, DEFAULT_TEAM
 import pandas as pd
 import requests
 import plotly.express as px
+import os
 
 st.title("🏁 F1 Fantasy Dashboard")
 
@@ -34,12 +35,7 @@ df["league_race_rank"] = (
 # Identify the snapshot displayed on this page
 latest_race = df.iloc[0]
 
-st.caption(
-    f"Latest race: Race {latest_race['race_number']} "
-    f"— {latest_race['race_name']}"
-)
-
-DEFAULT_TEAM = "In Search of Lost Sainz"
+DEFAULT_TEAM = os.getenv("DEFAULT_TEAM", "")
 
 team_options = sorted(df["team_name"].tolist())
 
@@ -57,6 +53,72 @@ selected_team = st.selectbox(
 
 my_row = df[df["team_name"] == selected_team].iloc[0]
 
+# Load history to compare with the previous league race
+history_response = requests.get(
+    f"{API_URL}/teams/by-race",
+    params={"season": 2026},
+    timeout=30,
+)
+history_response.raise_for_status()
+
+history_df = pd.DataFrame(history_response.json())
+
+season_rank_change = None
+race_rank_change = None
+
+current_race = int(my_row["race_number"])
+
+if not history_df.empty:
+    earlier_races = history_df.loc[
+        history_df["race_number"] < current_race,
+        "race_number",
+    ]
+
+    if not earlier_races.empty:
+        previous_race = int(earlier_races.max())
+
+        previous_df = history_df.loc[
+            history_df["race_number"] == previous_race
+        ].copy()
+
+        # Rank all teams before finding the selected team
+        previous_df["season_league_rank"] = (
+            previous_df["cumulative_points"]
+            .rank(method="min", ascending=False)
+        )
+
+        previous_df["league_race_rank"] = (
+            previous_df["race_points"]
+            .rank(method="min", ascending=False)
+        )
+
+        previous_team = previous_df.loc[
+            (previous_df["user_guid"] == my_row["user_guid"])
+            & (previous_df["team_no"] == my_row["team_no"])
+        ]
+
+        if not previous_team.empty:
+            previous_row = previous_team.iloc[0]
+
+            season_rank_change = (
+                int(previous_row["season_league_rank"])
+                - int(my_row["league_rank"])
+            )
+
+            race_rank_change = (
+                int(previous_row["league_race_rank"])
+                - int(my_row["league_race_rank"])
+            )
+
+
+def rank_delta(change):
+    if change is None or change == 0:
+        return None
+
+    unit = "place" if abs(change) == 1 else "places"
+    return f"{change:+d} {unit}"
+
+# 1 - TEAM OVERVIEW
 # Performance metrics
 st.subheader(f"{selected_team} Overview")
 
@@ -67,7 +129,13 @@ with col1:
         st.metric(
             "Season league rank",
             int(my_row["league_rank"]),
+            delta=rank_delta(season_rank_change),
         )
+
+        if season_rank_change == 0:
+            st.caption("Unchanged")
+        elif season_rank_change is None:
+            st.caption("No previous race comparison")
 
 with col2:
     with st.container(border=True):
@@ -81,7 +149,13 @@ with col3:
         st.metric(
             "Latest race rank",
             int(my_row["league_race_rank"]),
+            delta=rank_delta(race_rank_change),
         )
+
+        if race_rank_change == 0:
+            st.caption("Unchanged")
+        elif race_rank_change is None:
+            st.caption("No previous race comparison")
 
 with col4:
     with st.container(border=True):
@@ -159,10 +233,10 @@ display_df = (
     )
 )
 
-
+# 2 - VALUE BAR CHART
 # Stacked asset value and remaining cash
 st.subheader("Team Finances")
-st.caption("Asset value and remaining cash, ranked by total value")
+st.markdown("**Whose team is the most valuable—and how much is held in cash?**")
 
 finance_df = (
     chart_df
@@ -268,8 +342,9 @@ fig.update_yaxes(
 st.plotly_chart(fig, use_container_width=True)
 
 
-# League Dataframe
+# 3 - LEAGUE SNAPSHOT
 st.subheader("Latest League Snapshot")
+st.markdown("**How do teams compare on points and finances?**")
 
 def highlight_selected_team(row):
     if row["Team"] == selected_team:
@@ -322,3 +397,7 @@ st.caption(
     )
 
 
+st.caption(
+    f"Data through race {latest_race['race_number']} "
+    f"— {latest_race['race_name']}."
+)

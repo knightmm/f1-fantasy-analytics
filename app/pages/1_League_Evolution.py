@@ -5,7 +5,7 @@ import requests
 import plotly.express as px
 import plotly.graph_objects as go
 
-st.title("League Evolution")
+st.title("📈 League Evolution")
 
 # Get team history from the API
 response = requests.get(
@@ -16,6 +16,10 @@ response.raise_for_status()
 
 # Convert JSON records into dataframe
 df = pd.DataFrame(response.json())
+
+# 1- TOGGLE PERFORMANCE CHART
+st.subheader("Season Evolution")
+st.markdown("**Who’s pulling ahead in points and team value?**")
 
 # Metric selector
 metrics = {
@@ -31,6 +35,9 @@ selected_metric = st.selectbox(
 )
 
 metric_column = metrics[selected_metric]
+
+# Latest observation across teams remains the reference snapshot
+latest_race = int(df["race_number"].max())
 
 # Identify each team using its owner and team number
 df["team_key"] = (
@@ -96,7 +103,9 @@ if average_column is not None:
 
 st.plotly_chart(fig, use_container_width=True)
 
-st.subheader("Race details")
+# 2 - BY-RACE CHART
+st.subheader("Race Snapshot")
+st.markdown("**Where did the teams stand after each race?**")
 
 # One entry per race for the selector
 race_lookup = (
@@ -151,3 +160,5 @@ st.dataframe(
     hide_index=True,
     use_container_width=True,
 )
+
+st.caption(f"Data through race {latest_race}.")
