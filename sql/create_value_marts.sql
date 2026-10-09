@@ -1,9 +1,14 @@
+-- Remove old team marts
+DROP TABLE IF EXISTS mart_team_season_summary;
+DROP TABLE IF EXISTS mart_team_values_by_race;
+DROP TABLE IF EXISTS mart_team_values_latest;
+
 
 -- Asset Value Changes by Race
 DROP TABLE IF EXISTS mart_asset_value_changes_by_race;
 
 CREATE TABLE mart_asset_value_changes_by_race AS
-SELECT 
+SELECT
     season,
     race_number,
     asset_id,
@@ -111,7 +116,6 @@ SELECT
     mal.gameday_points AS latest_completed_race_points,
     mal.points_race_number,
     mal.price_feed_race_number
-
 FROM team_race_asset tas
 
 JOIN latest_race lr
@@ -132,133 +136,7 @@ ORDER BY
     mal.current_value DESC;
 
 
--- Latest Team Values
-DROP TABLE IF EXISTS mart_team_values_latest;
-
-CREATE TABLE mart_team_values_latest AS
-SELECT
-    season,
-    team_snapshot_race_number,
-    price_feed_race_number,
-    user_guid,
-    team_no,
-    team_name,
-    ROUND(SUM(current_value), 1) AS current_team_value,
-    ROUND(SUM(latest_value_change), 1) AS total_team_value_change,
-    ROUND(SUM(latest_completed_race_points), 1) AS latest_completed_team_points,
-    COUNT(*) AS asset_count,
-
-    CASE
-        WHEN ROUND(SUM(current_value), 1) > 130 THEN 1
-        ELSE 0
-    END AS likely_limitless_team
-
-FROM mart_team_assets_latest
-
-GROUP BY
-    season,
-    team_snapshot_race_number,
-    price_feed_race_number,
-    user_guid,
-    team_no,
-    team_name
-
-ORDER BY current_team_value DESC;
-
-
--- Team Values with Asset Prices and Performance per Race
-DROP TABLE IF EXISTS mart_team_values_by_race;
-
-CREATE TABLE mart_team_values_by_race AS
-WITH team_asset_performance AS (
-
-    SELECT
-        tas.season,
-        tas.race_number,
-        tas.team_name,
-        tas.team_no,
-        tas.asset_id,
-        avr.value,
-        avr.value_change,
-        avr.gameday_points
-    FROM team_race_asset tas
-    LEFT JOIN mart_asset_value_changes_by_race avr
-        ON tas.season = avr.season
-        AND tas.race_number = avr.race_number
-        AND tas.asset_id = avr.asset_id
-
-)
-
-SELECT
-    season,
-    race_number,
-    team_name,
-    team_no,
-    ROUND(SUM(value), 1) AS team_value,
-    ROUND(SUM(value_change), 1) AS team_value_change,
-    SUM(gameday_points) AS calculated_asset_points,
-    CASE
-        WHEN ROUND(SUM(value), 1) > 130 THEN 1
-        ELSE 0
-    END AS likely_limitless_team
-FROM team_asset_performance
-GROUP BY
-    season,
-    race_number,
-    team_name,
-    team_no;
-
-
--- Season Team Performance
-DROP TABLE IF EXISTS mart_team_season_summary;
-
-CREATE TABLE mart_team_season_summary AS
-WITH latest_race AS (
-    SELECT
-        season,
-        MAX(race_number) AS latest_race_number
-    FROM mart_team_values_by_race
-    GROUP BY season
-),
-
-team_season_totals AS (
-    SELECT
-        season,
-        team_name,
-        MAX(team_no) AS team_no,
-        SUM(calculated_asset_points) AS cumulative_calculated_points,
-        MAX(likely_limitless_team) AS has_used_limitless
-    FROM mart_team_values_by_race
-    GROUP BY
-        season,
-        team_name
-),
-
-latest_team_values AS (
-    SELECT
-        tv.*
-    FROM mart_team_values_by_race tv
-    JOIN latest_race lr
-        ON tv.season = lr.season
-        AND tv.race_number = lr.latest_race_number
-)
-
-SELECT
-    tst.season,
-    ltv.race_number AS latest_race_number,
-    tst.team_name,
-    tst.team_no,
-    tst.cumulative_calculated_points,
-    ltv.team_value AS latest_team_value,
-    ltv.team_value_change AS latest_team_value_change,
-    ltv.calculated_asset_points AS latest_calculated_asset_points,
-    tst.has_used_limitless
-FROM team_season_totals tst
-LEFT JOIN latest_team_values ltv
-    ON tst.season = ltv.season
-    AND tst.team_name = ltv.team_name;
-
--- Team performance and finances by race
+-- Team Performance and Finances by Race
 DROP TABLE IF EXISTS mart_team_race;
 
 CREATE TABLE mart_team_race AS
@@ -277,6 +155,7 @@ WITH roster_values AS (
         END AS calculated_asset_value
 
     FROM team_race_asset AS s
+
     LEFT JOIN asset_race AS a
         ON a.season = s.season
        AND a.race_number = s.race_number
@@ -359,6 +238,7 @@ team_metrics AS (
         END AS valuation_source
 
     FROM team_race AS t
+
     JOIN races AS r
         ON t.season = r.season
        AND t.race_number = r.race_number
@@ -399,7 +279,8 @@ SELECT
 
 FROM team_metrics AS m;
 
--- Chip usage and availability by team
+
+-- Chip Usage and Availability by Team
 DROP TABLE IF EXISTS mart_team_chips;
 
 CREATE TABLE mart_team_chips AS

@@ -3,6 +3,7 @@ import sqlite3
 import pandas as pd
 import os
 
+
 app = FastAPI()
 
 PROJECT_ROOT = os.path.dirname(
@@ -10,6 +11,7 @@ PROJECT_ROOT = os.path.dirname(
 )
 
 DB_PATH = os.path.join(PROJECT_ROOT, "data", "f1_fantasy.db")
+
 
 def run_query(query, params=None):
     if params is None:
@@ -24,7 +26,14 @@ def run_query(query, params=None):
     return df.to_dict(orient="records")
 
 
-@app.get("/")
+@app.get(
+    "/",
+    summary="Check API status",
+    description="""
+Confirms that the API is running.
+Does not check database availability or data freshness.
+""",
+)
 def root():
     return {"message": "F1 Fantasy API running"}
 
@@ -33,22 +42,18 @@ def root():
     "/assets/latest",
     summary="Get latest asset prices and points",
     description="""
-    Returns the latest available asset data for all drivers and constructors.
+Returns one row per driver or constructor with current prices,
+price changes, points and selection percentages.
 
-    Combines:
-    - latest official asset prices and value changes from the current feed
-    - latest completed race points and selection statistics
-
-    Supports filtering by:
-    - asset_type
-    - display_name
-    """
+Filters: asset_type and display_name.
+Prices and points may refer to different race snapshots.
+""",
 )
 def get_latest_assets(
     asset_type: str | None = None,
     display_name: str | None = None,
 ):
-    query = """ 
+    query = """
         SELECT
             asset_id,
             asset_type,
@@ -88,19 +93,12 @@ def get_latest_assets(
     "/assets/value-changes",
     summary="Get historical asset value changes",
     description="""
-    Returns historical asset value changes by race for all drivers and constructors.
+Returns one row per asset per race with prices, price changes,
+points and selection percentages.
 
-    Includes:
-    - asset prices
-    - value changes
-    - race-by-race fantasy points
-    - selection percentages
-
-    Supports filtering by:
-    - asset_type
-    - display_name
-    - race_number
-    """
+Filters: asset_type, display_name and race_number.
+Results are ordered by largest value change; limit defaults to 20.
+""",
 )
 def get_asset_value_changes(
     asset_type: str | None = None,
@@ -135,7 +133,7 @@ def get_asset_value_changes(
         filters.append("LOWER(display_name) LIKE LOWER(?)")
         params.append(f"%{display_name}%")
 
-    if race_number:
+    if race_number is not None:
         filters.append("race_number = ?")
         params.append(race_number)
 
@@ -153,71 +151,15 @@ def get_asset_value_changes(
 
 
 @app.get(
-    "/league/team-values/latest",
-    summary="Get latest league team values",
-    description="""
-    Returns the latest estimated values of teams in the private F1 Fantasy league
-    using the most recent asset prices.
-
-    Grain:
-    - one row per team
-
-    Includes:
-    - current team value
-    - latest total team value change
-    - latest completed race points
-    - asset count
-    - team information
-    - likely limitless chip usage detection
-    """
-)
-def get_latest_league_team_values(
-    team_name: str | None = None,
-):
-    query = """
-        SELECT
-            team_snapshot_race_number,
-            price_feed_race_number,
-            team_name,
-            current_team_value,
-            total_team_value_change,
-            latest_completed_team_points,
-            asset_count,
-            likely_limitless_team
-        FROM mart_team_values_latest
-    """
-
-    params = []
-    filters = []
-
-    if team_name:
-        filters.append("LOWER(team_name) LIKE LOWER(?)")
-        params.append(f"%{team_name}%")
-
-    if filters:
-        query += " WHERE " + " AND ".join(filters)
-
-    query += " ORDER BY current_team_value DESC"
-
-    return run_query(query, params)
-
-
-@app.get(
     "/league/team-assets/latest",
     summary="Get latest league team assets",
     description="""
-    Returns the latest known lineups for teams in the private F1 Fantasy league.
+Returns one row per roster asset entry in the latest loaded
+team snapshot, enriched with asset prices and points.
 
-    Grain:
-    - one row per asset in each team's latest lineup
-
-    Includes:
-    - team information
-    - asset names and types
-    - current asset values
-    - latest value changes
-    - latest completed race points
-    """
+Filters: team_name.
+Asset prices and points may refer to a different race from the lineup.
+""",
 )
 def get_latest_league_team_assets(
     team_name: str | None = None,
@@ -259,57 +201,15 @@ def get_latest_league_team_assets(
 
 
 @app.get(
-    "/league/team-season-summary",
-    summary="Get current team season summary",
-    description="""
-    Returns one row per team with season-to-date calculated points,
-    latest team value, latest race points, and likely Limitless usage.
-
-    Grain:
-    - one row per team
-
-    Notes:
-    - points are calculated from asset points, not official league standings
-    - Limitless usage is estimated from unusually high team value
-    """
-)
-def get_team_season_summary(
-    team_name: str | None = None,
-):
-    query = """
-        SELECT
-            season,
-            latest_race_number,
-            team_name,
-            cumulative_calculated_points,
-            latest_team_value,
-            latest_team_value_change,
-            latest_calculated_asset_points,
-            has_used_limitless
-        FROM mart_team_season_summary
-    """
-
-    params = []
-    filters = []
-
-    if team_name:
-        filters.append("LOWER(team_name) LIKE LOWER(?)")
-        params.append(f"%{team_name}%")
-
-    if filters:
-        query += " WHERE " + " AND ".join(filters)
-
-    query += " ORDER BY cumulative_calculated_points DESC"
-
-    return run_query(query, params)
-
-
-@app.get(
     "/teams/by-race",
     summary="Get team performance and finances by race",
     description="""
-        Returns one row per team per race, with official points, cumulative points, financial values and league averages."
-    """
+Returns one row per team per race with official points,
+cumulative points, finances, wealth changes and league averages.
+
+Filters: season, race_number and team_name.
+Recorded valuations are preferred, with calculated fallbacks where possible.
+""",
 )
 def get_teams_by_race(
     season: int | None = None,
@@ -372,12 +272,17 @@ def get_teams_by_race(
 
     return run_query(query, params)
 
+
 @app.get(
     "/teams/latest",
     summary="Get latest team performance and finances",
     description="""
-    Returns one row per team at the latest loaded race of each season, with official points, league position and corrected financial values.
-    """
+Returns one row per team present at the latest loaded race
+of each season, with points, championship rank and finances.
+
+Filters: season and team_name.
+League ranks are calculated before filtering; absent teams are excluded.
+""",
 )
 def get_latest_teams(
     season: int | None = None,
@@ -452,16 +357,17 @@ def get_latest_teams(
 
     return run_query(query, params)
 
+
 @app.get(
     "/teams/chips",
     summary="Get team chip usage and status",
     description="""
-    Returns one row per team per chip, including unused chips.
+Returns one row per team per chip with status, activation race,
+team race points and the corresponding league average.
 
-    Status reflects each team's latest available snapshot.
-    Chip race points are the team's full race score,
-    not the additional points generated by the chip.
-    """,
+Filters: season, team_name, chip_id and chip_status.
+Status uses each team's latest snapshot; scores do not measure chip impact.
+""",
 )
 def get_team_chips(
     season: int | None = None,
