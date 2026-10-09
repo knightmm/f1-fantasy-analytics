@@ -90,7 +90,7 @@ if average_column is not None:
     
     fig.update_traces(
     opacity=0.8,
-    line=dict(width=1.5),
+    line=dict(width=3),
     )
 
 

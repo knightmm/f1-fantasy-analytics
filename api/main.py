@@ -5,8 +5,11 @@ import os
 
 app = FastAPI()
 
-DB_PATH = os.path.join("data", "f1_fantasy.db")
+PROJECT_ROOT = os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))
+)
 
+DB_PATH = os.path.join(PROJECT_ROOT, "data", "f1_fantasy.db")
 
 def run_query(query, params=None):
     if params is None:
@@ -304,10 +307,9 @@ def get_team_season_summary(
 @app.get(
     "/teams/by-race",
     summary="Get team performance and finances by race",
-    description=(
-        "Returns one row per team per race, with official points, "
-        "cumulative points, financial values and league averages."
-    ),
+    description="""
+        Returns one row per team per race, with official points, cumulative points, financial values and league averages."
+    """
 )
 def get_teams_by_race(
     season: int | None = None,
@@ -366,6 +368,86 @@ def get_teams_by_race(
             t.cumulative_points DESC,
             t.user_guid,
             t.team_no
+    """
+
+    return run_query(query, params)
+
+@app.get(
+    "/teams/latest",
+    summary="Get latest team performance and finances",
+    description="""
+    Returns one row per team at the latest loaded race of each season, with official points, league position and corrected financial values.
+    """
+)
+def get_latest_teams(
+    season: int | None = None,
+    team_name: str | None = None,
+):
+    query = """
+        WITH latest_race AS (
+            SELECT
+                season,
+                MAX(race_number) AS race_number
+            FROM mart_team_race
+            GROUP BY season
+        ),
+
+        latest_teams AS (
+            SELECT
+                t.*,
+
+                RANK() OVER (
+                    PARTITION BY t.season
+                    ORDER BY t.cumulative_points DESC
+                ) AS league_rank
+
+            FROM mart_team_race AS t
+
+            JOIN latest_race AS l
+                ON t.season = l.season
+               AND t.race_number = l.race_number
+        )
+
+        SELECT
+            season,
+            race_number,
+            race_name,
+            user_guid,
+            team_no,
+            team_name,
+            race_points,
+            race_rank,
+            cumulative_points,
+            league_rank,
+            asset_value,
+            remaining_budget,
+            total_wealth,
+            wealth_change,
+            valuation_source
+
+        FROM latest_teams
+    """
+
+    params = []
+    filters = []
+
+    if season is not None:
+        filters.append("season = ?")
+        params.append(season)
+
+    if team_name:
+        filters.append("LOWER(team_name) LIKE LOWER(?)")
+        params.append(f"%{team_name}%")
+
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+
+    query += """
+        ORDER BY
+            season,
+            league_rank,
+            user_guid,
+            team_no
     """
 
     return run_query(query, params)
