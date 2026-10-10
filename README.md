@@ -2,7 +2,7 @@
 
 A data analytics project for exploring F1 Fantasy league performance in more detail than is available through the official application interface.
 
-The project uses F1 Fantasy data to reconstruct league and team history and make comparisons that would otherwise require manual calculations. This includes team value and growth, chip usage, transfers, team composition and race-by-race performance.
+The project uses F1 Fantasy data to reconstruct league and team history and make comparisons that would otherwise require manual calculations. This includes team value and growth, chip usage, team composition and race-by-race performance.
 
 The project is intended for personal analysis of leagues in which the user participates.
 
@@ -41,36 +41,17 @@ The authenticated data allows the project to analyse information that is availab
 
 ```text
 f1-fantasy-analytics/
-├── api/
-│   └── main.py
-├── app/
-│   ├── Home.py
-│   ├── config.py
-│   └── pages/
-│       ├── 1_League_Evolution.py
-│       └── 2_Chip_Strategy.py
-├── data/
-│   ├── raw/
-│   ├── processed/
-│   └── reference/
-├── docs/
-├── notebooks/
-├── scripts/
-├── sql/
-├── src/
-│   └── utils/
+├── api/                 # FastAPI endpoints
+├── app/                 # Streamlit dashboard
+├── data/                # Reference files and local data
+├── docs/                # Documentation and screenshots
+├── notebooks/           # Exploratory work
+├── scripts/             # Data collection and preparation
+├── sql/                 # Analytical marts
+├── src/                 # Reusable Python modules
 ├── requirements.txt
 └── run_pipeline.py
 ```
-
-- **`scripts/`** — executable stages for data collection, preparation, database loading and mart creation.
-- **`src/`** — reusable transformation and validation logic.
-- **`src/utils/`** — shared utilities for paths, database access and race metadata.
-- **`sql/`** — SQL transformations for analytical marts.
-- **`api/`** — FastAPI endpoints exposing the analytical data.
-- **`app/`** — Streamlit dashboard and additional analytical pages.
-- **`notebooks/`** — exploratory analysis and development work.
-- **`docs/`** — technical notes and supporting screenshots.
 
 ### Data layers
 
@@ -83,14 +64,28 @@ Raw and processed data, local databases and private notebooks are excluded from 
 
 ## Analytical marts
 
-SQL marts prepare the datasets used by the API and dashboard.
+SQL marts prepare the datasets used by the API and dashboard:
 
-The main team marts are:
+- **`mart_team_race`** — race-by-race team points, cumulative points, financial values, changes in total value and league averages.
+- **`mart_team_chips`** — chip usage, availability, activation races and race performance, using each team's latest available snapshot.
+- **`mart_team_assets_latest`** — team selections in the latest loaded race, enriched with driver and constructor data.
+- **`mart_assets_latest`** — latest available driver and constructor prices, points and selection percentages.
+- **`mart_asset_value_changes_by_race`** — historical asset prices, price changes and performance by race.
 
-- **`mart_team_race`** — historical team performance, cumulative points, finances, value changes and league averages.
-- **`mart_team_chips`** — chip usage, availability and race performance, using each team's latest available snapshot.
+## API endpoints
 
-Additional marts provide historical asset-price changes, latest asset information and enriched team selections.
+FastAPI exposes the marts through six data endpoints:
+
+| Endpoint | Data returned |
+| --- | --- |
+| `/assets/latest` | Latest driver and constructor prices and points |
+| `/assets/value-changes` | Asset price changes by race |
+| `/teams/assets/latest` | Latest team selections enriched with asset details |
+| `/teams/by-race` | Historical team performance and finances |
+| `/teams/latest` | Latest team standings and finances |
+| `/teams/chips` | Chip usage, status and performance by team |
+
+The root endpoint (`/`) provides a basic API status response. Interactive endpoint documentation is available at `/docs` while FastAPI is running.
 
 ### Historical team valuation
 
@@ -131,7 +126,7 @@ F1_COOKIE=your_cookie_here
 F1_USER_AGENT=your_user_agent_here
 LEAGUE_ID=your_league_id_here
 
-# Optional: show your own team's stats by default on the Home page
+# Optional: show your own team's stats by default on the Overview page
 DEFAULT_TEAM="Your Team Name"
 ```
 
@@ -154,17 +149,39 @@ fastapi dev api/main.py
 Then, in a separate terminal, start Streamlit:
 
 ```bash
-streamlit run app/Home.py
+streamlit run app/Overview.py
 ```
 
 The application currently runs locally.
 
 ## Analytics application
 
-The Streamlit dashboard currently includes three views:
+Three Streamlit pages explore league standings, financial evolution and chip strategy. The screenshots highlight selected features.
 
-- **Home** — latest league standings, team performance and financial comparisons.
-- **League Evolution** — historical comparisons of points, team value and remaining cash, with race-by-race snapshots.
-- **Chip Strategy** — chip availability and usage across teams, timing of activations and race performance relative to the league average.
+### Overview
 
-Further analysis and visualisation improvements are planned.
+View your team's points, rankings and finances, with changes since the previous race. The **Team Finances** chart compares asset value and cash across the league; a standings table provides the full points and financial rankings.
+
+![Overview dashboard showing team metrics and asset value versus cash](docs/screenshots/overview.png)
+
+### Team Evolution
+
+Compare teams across races using an interactive chart of **season points, total value, asset value or cash**, with league averages for points and total value. The example shows how team wealth diverges over the season.
+
+![Historical total team value compared with rivals and the league average](docs/screenshots/team_evolution_value.png)
+
+A separate race selector displays each team's **race points, value change and total value**.
+
+### Chip Strategy
+
+The **Chip Overview** shows which chips each team has used and at which Grand Prix, with an option to sort teams by championship position.
+
+![Chip usage by team and Grand Prix](docs/screenshots/chip_strategy.png)
+
+A second table compares points scored during chip-activation races with the league average; it does not measure the chip's direct impact.
+
+## Scope and future improvements
+
+The current dashboard focuses on historical league performance, financial evolution and chip strategy. The API also exposes driver and constructor prices, price changes and latest team selections for further analysis.
+
+Potential future work includes detailed transfer analysis: evaluating the financial and scoring consequences of transfer decisions and comparing them with alternative selections affordable within each team's budget.
