@@ -151,7 +151,7 @@ def get_asset_value_changes(
 
 
 @app.get(
-    "/team/assets/latest",
+    "/teams/assets/latest",
     summary="Get latest team assets",
     description="""
 Returns one row per roster asset entry in the latest loaded
