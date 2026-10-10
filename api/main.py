@@ -151,8 +151,8 @@ def get_asset_value_changes(
 
 
 @app.get(
-    "/league/team-assets/latest",
-    summary="Get latest league team assets",
+    "/team/assets/latest",
+    summary="Get latest team assets",
     description="""
 Returns one row per roster asset entry in the latest loaded
 team snapshot, enriched with asset prices and points.
@@ -161,7 +161,7 @@ Filters: team_name.
 Asset prices and points may refer to a different race from the lineup.
 """,
 )
-def get_latest_league_team_assets(
+def get_latest_team_assets(
     team_name: str | None = None,
 ):
     query = """
