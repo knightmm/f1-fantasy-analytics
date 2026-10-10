@@ -49,6 +49,7 @@ f1-fantasy-analytics/
 ├── scripts/             # Data collection and preparation
 ├── sql/                 # Analytical marts
 ├── src/                 # Reusable Python modules
+├── .env.example
 ├── requirements.txt
 └── run_pipeline.py
 ```
@@ -114,39 +115,48 @@ source .venv/bin/activate
 Install the dependencies:
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 ## Configuration
 
-Some F1 Fantasy endpoints require authentication. Create a `.env` file in the project root:
+Copy the configuration template and fill in your own league and authentication details:
 
-```dotenv
-F1_COOKIE=your_cookie_here
-F1_USER_AGENT=your_user_agent_here
-LEAGUE_ID=your_league_id_here
-
-# Optional: show your own team's stats by default on the Overview page
-DEFAULT_TEAM="Your Team Name"
+```bash
+cp .env.example .env
 ```
 
-The `.env` file and local data are excluded from Git.
+| Variable | Purpose |
+| --- | --- |
+| `LEAGUE_ID` | ID of the private F1 Fantasy league to analyse |
+| `F1_COOKIE` | `Cookie` request header for authenticated data extraction |
+| `F1_USER_AGENT` | `User-Agent` request header |
+| `DEFAULT_TEAM` | Optional team selected by default on the Overview page |
+
+To find **`LEAGUE_ID`**, log in to F1 Fantasy, open the target league and inspect requests in your browser's Developer Tools → Network tab. The league ID appears in URLs such as:
+
+```text
+/feeds/leaderboard/privateleague/list_1_{LEAGUE_ID}_0_1.json
+/.../userrankgetv1/0/1/private/{LEAGUE_ID}
+```
+
+For authentication, inspect a successful authenticated F1 Fantasy API request in the Network tab and copy the complete **`Cookie`** and **`User-Agent`** values from its Request Headers into `.env`. An HTTP 401 response can indicate that the cookie needs refreshing. Never commit `.env` to Git.
 
 ## Running the project
 
-Run the complete data pipeline:
+First, collect and prepare the data, load and validate the SQLite tables, and generate the analytical marts:
 
 ```bash
 python run_pipeline.py
 ```
 
-Start the FastAPI application:
+The pipeline creates the required local data directories automatically. Start the FastAPI application:
 
 ```bash
 fastapi dev api/main.py
 ```
 
-Then, in a separate terminal, start Streamlit:
+In a second terminal, with the virtual environment activated, launch the Streamlit dashboard:
 
 ```bash
 streamlit run app/Overview.py
