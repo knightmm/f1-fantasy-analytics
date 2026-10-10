@@ -33,6 +33,8 @@ def load_raw_json(dataset_name, race_number):
 def save_raw_json(data, dataset_name, race_number):
     file_path = get_raw_file_path(dataset_name, race_number)
 
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
     with open(file_path, "w") as f:
         json.dump(data, f, indent=2)
 
@@ -46,6 +48,9 @@ def get_processed_file_path(dataset_name, race_number):
 
 def save_processed_csv(data, dataset_name, race_number):
     file_path = get_processed_file_path(dataset_name, race_number)
+
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
     data.to_csv(file_path, index=False)
 
 
