@@ -5,10 +5,12 @@ import requests
 import plotly.express as px
 import os
 
-st.title("🏁 F1 Fantasy Dashboard")
+st.title("🏁 League Overview")
 
 st.write(
-    "This dashboard makes it easier to compare performance and finances across your F1 Fantasy league. It brings standings, team wealth and remaining cash into one view, helping you see how your team compares with your league rivals."
+    "Your F1 Fantasy league at a glance: compare season standings, "
+    "team value and available cash, then explore performance over time "
+    "and chip strategy."
 )
 
 # Latest team performance and finances
@@ -46,7 +48,7 @@ default_index = (
 )
 
 selected_team = st.selectbox(
-    "Select team",
+    "Your team",
     team_options,
     index=default_index,
 )
@@ -120,12 +122,11 @@ def rank_delta(change):
 
 # 1 - TEAM OVERVIEW
 # Performance metrics
-st.subheader(f"{selected_team} Overview")
 
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    with st.container(border=True):
+    with st.container(border=True, height=140):
         st.metric(
             "Season league rank",
             int(my_row["league_rank"]),
@@ -138,14 +139,14 @@ with col1:
             st.caption("No previous race comparison")
 
 with col2:
-    with st.container(border=True):
+    with st.container(border=True, height=140):
         st.metric(
             "Season points",
             int(my_row["cumulative_points"]),
         )
 
 with col3:
-    with st.container(border=True):
+    with st.container(border=True, height=140):
         st.metric(
             "Latest race rank",
             int(my_row["league_race_rank"]),
@@ -158,7 +159,7 @@ with col3:
             st.caption("No previous race comparison")
 
 with col4:
-    with st.container(border=True):
+    with st.container(border=True, height=140):
         st.metric(
             "Latest race points",
             int(my_row["race_points"]),
@@ -169,7 +170,7 @@ with col4:
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    with st.container(border=True):
+    with st.container(border=True, height=140):
         st.metric(
             "Total value",
             f"${my_row['total_wealth']:.1f}m"
@@ -183,7 +184,7 @@ with col1:
         )
 
 with col2:
-    with st.container(border=True):
+    with st.container(border=True, height=140):
         st.metric(
             "Asset value",
             f"${my_row['asset_value']:.1f}m"
@@ -192,7 +193,7 @@ with col2:
         )
 
 with col3:
-    with st.container(border=True):
+    with st.container(border=True, height=140):
         st.metric(
             "Remaining cash",
             f"${my_row['remaining_budget']:.1f}m"
@@ -203,35 +204,6 @@ with col3:
 # All teams present in the latest race snapshot
 chart_df = df.copy()
 
-# One league snapshot combining standings and finances
-display_df = (
-    df.sort_values("league_rank")[
-        [
-            "league_rank",
-            "team_name",
-            "cumulative_points",
-            "total_wealth",
-            "wealth_change",          
-            "asset_value",
-            "remaining_budget",
-            "race_points",
-            "league_race_rank"
-        ]
-    ]
-    .rename(
-        columns={
-            "league_rank": "Rank",
-            "team_name": "Team",
-            "cumulative_points": "Season points",
-            "race_points": "Latest race points",
-            "league_race_rank": "Latest race rank",
-            "asset_value": "Asset value ($m)",
-            "remaining_budget": "Cash ($m)",
-            "total_wealth": "Total value ($m)",
-            "wealth_change": "Value change ($m)",
-        }
-    )
-)
 
 # 2 - VALUE BAR CHART
 # Stacked asset value and remaining cash
@@ -341,11 +313,35 @@ fig.update_yaxes(
 
 st.plotly_chart(fig, use_container_width=True)
 
+# 3 - LEAGUE STANDINGS
+st.subheader("Season Standings & Finances")
+st.markdown("**How do teams compare on season points and current finances?**")
 
-# 3 - LEAGUE SNAPSHOT
-st.subheader("Latest League Snapshot")
-st.markdown("**How do teams compare on points and finances?**")
+# Columns to display in League Standings chart and order
+display_df = (
+    df.sort_values("league_rank")[
+        [
+            "league_rank",
+            "team_name",
+            "cumulative_points",
+            "total_wealth",
+            "asset_value",
+            "remaining_budget",
+        ]
+    ]
+    .rename(
+        columns={
+            "league_rank": "Rank",
+            "team_name": "Team",
+            "cumulative_points": "Season points",
+            "asset_value": "Asset value ($m)",
+            "remaining_budget": "Cash ($m)",
+            "total_wealth": "Total value ($m)",
+        }
+    )
+)
 
+# Highlight own team and number formatting
 def highlight_selected_team(row):
     if row["Team"] == selected_team:
         return [
@@ -361,12 +357,9 @@ styled_df = (
         {
             "Rank": "{:.0f}",
             "Season points": "{:.0f}",
-            "Latest race points": "{:.0f}",
-            "Latest race rank": "{:.0f}",
             "Asset value ($m)": "{:.1f}",
             "Cash ($m)": "{:.1f}",
             "Total value ($m)": "{:.1f}",
-            "Value change ($m)": "{:.1f}",
         },
         na_rep="—",
     )
@@ -386,7 +379,6 @@ st.dataframe(
             "Asset value ($m)",
             "Cash ($m)",
             "Total value ($m)",
-            "Value change ($m)",
         ]
     },
 )
