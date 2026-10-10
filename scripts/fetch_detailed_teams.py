@@ -81,6 +81,10 @@ def main():
                 race_number,
             )
 
+            # Remove unnecessary account identifier (GDPR minimisation).
+            for team in raw_data.get("Value", {}).get("userTeam", []):
+                team.pop("socialId", None)
+
             save_detailed_team_raw(
                 raw_data,
                 user_guid,

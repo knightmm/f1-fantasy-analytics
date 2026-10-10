@@ -32,6 +32,10 @@ def main():
             continue
 
         raw_data = fetch_league_standings(race_number)
+
+        for team in raw_data["Value"]["leaderboard"]:
+            team.pop("user_name", None)
+
         save_raw_json(raw_data, "league_standings", race_number)
         fetched += 1
 
